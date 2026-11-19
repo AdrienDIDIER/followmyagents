@@ -1,0 +1,22 @@
+[
+  [
+    "✅",
+    "vraie session : permission Bash autorisée depuis le widget → la commande s'exécute"
+  ],
+  [
+    "✅",
+    "vraie session : permission refusée depuis le widget → la commande n'est pas exécutée"
+  ],
+  [
+    "✅",
+    "vraie session : question AskUserQuestion répondue depuis le widget → l'agent continue avec la bonne option"
+  ],
+  [
+    "✅",
+    "vraie session : réponse donnée dans VS Code (hôte) → la demande disparaît du widget"
+  ],
+  [
+    "✅",
+    "4 sessions en parallèle : 4 lignes à jour, latence hook → panneau < 1 s"
+  ]
+]
