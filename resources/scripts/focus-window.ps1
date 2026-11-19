@@ -35,7 +35,12 @@ $pids = New-Object 'System.Collections.Generic.HashSet[uint32]'
 Get-Process -Name $Process -ErrorAction SilentlyContinue | ForEach-Object { [void]$pids.Add([uint32]$_.Id) }
 $wins = [FmaWin]::List($pids)
 $target = $null
-if ($TitleContains -ne "") { $target = $wins | Where-Object { $_.Value -like "*$TitleContains*" } | Select-Object -First 1 }
+if ($TitleContains -ne "") {
+  # 1) titre VS Code « fichier - dossier - Visual Studio Code » : segment exact
+  $target = $wins | Where-Object { ($_.Value -split ' - ') -contains $TitleContains } | Select-Object -First 1
+  # 2) sinon, titre qui contient le texte
+  if (-not $target) { $target = $wins | Where-Object { $_.Value -like "*$TitleContains*" } | Select-Object -First 1 }
+}
 if (-not $target) { $target = $wins | Select-Object -First 1 }
 if (-not $target) { Write-Output "NOTFOUND"; exit 1 }
 $h = $target.Key
