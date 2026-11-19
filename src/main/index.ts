@@ -24,6 +24,7 @@ import { codexSessionUri, jumpToSession, listVsCodeWindowTitles } from "./vscode
 import { readIdeWindows } from "./ide";
 import { Updater } from "./updater";
 import { QuotaWatcher } from "./quota";
+import { CodexQuotaWatcher } from "./codex-quota";
 import { projectsDir, readTranscriptInfo, scanRecentTranscripts } from "./transcripts";
 import { describeTool, messagePreview, titleFromPrompt } from "./describe";
 import { folderTitle } from "./store";
@@ -53,6 +54,7 @@ let panel: Panel;
 let quitting = false;
 let updater: Updater;
 let quota: QuotaWatcher;
+let codexQuota: CodexQuotaWatcher;
 const log = (m: string) => {
   if (process.env.FMA_DEBUG) console.log(`[fma] ${m}`);
 };
@@ -83,6 +85,7 @@ function snapshot(): AppSnapshot {
     maxHeight: panel.maxHeight(),
     update: updater.state,
     quota: cfg.prefs.showQuota ? quota.view : { state: "disabled", limits: [] },
+    codexQuota: cfg.prefs.showQuota ? codexQuota.view : { state: "disabled", limits: [] },
     version: app.getVersion(),
     glass: !NO_GLASS && (process.platform === "darwin" || process.platform === "win32"),
     now: Date.now(),
@@ -166,12 +169,15 @@ function trayMenu(): Menu {
     { type: "separator" },
     { type: "separator" },
     {
-      label: "Afficher le quota Claude",
+      label: "Afficher les quotas (Claude, Codex)",
       type: "checkbox",
       checked: cfg.prefs.showQuota,
       click: (i) => {
         setPref("showQuota", i.checked);
-        if (i.checked) void quota.refresh();
+        if (i.checked) {
+          void quota.refresh();
+          void codexQuota.refresh();
+        }
       },
     },
     ...updateMenuItems(),
@@ -396,6 +402,9 @@ function togglePanel(reason: "click" | "shortcut") {
     panel.show(reason);
     maybeCheckUpdate();
     if (cfg.prefs.showQuota && process.env.FMA_E2E !== "1" && Date.now() - (quota.view.fetchedAt ?? 0) > 60_000) void quota.refresh();
+    if (cfg.prefs.showQuota && process.env.FMA_E2E !== "1" && codexQuota.view.state !== "disabled" && Date.now() - (codexQuota.view.fetchedAt ?? 0) > 120_000) {
+      void codexQuota.refresh();
+    }
     if (reason === "shortcut") panel.win.webContents.send("focus-pending", store.getPendings()[0]?.id ?? null);
   }
 }
@@ -478,6 +487,7 @@ async function start() {
   if (process.platform === "darwin") app.dock?.hide();
   cfg = loadConfig(app.getPath("userData"));
   quota = new QuotaWatcher({ onChange: () => pushSnapshot() });
+  codexQuota = new CodexQuotaWatcher({ onChange: () => pushSnapshot() });
   updater = new Updater({
     owner: UPDATE_REPO[0],
     repo: UPDATE_REPO[1],
@@ -569,6 +579,10 @@ async function start() {
     const q = () => cfg.prefs.showQuota && void quota.refresh();
     setTimeout(q, 1_500);
     setInterval(q, 3 * 60_000);
+    // Codex : un court processus `codex app-server` à chaque lecture → toutes les 5 min
+    const cq = () => cfg.prefs.showQuota && void codexQuota.refresh();
+    setTimeout(cq, 4_000);
+    setInterval(cq, 5 * 60_000);
   }
 
   // mises à jour : 3 s après le démarrage, puis toutes les 6 h et à chaque ouverture
@@ -611,6 +625,7 @@ async function start() {
       lastJump: () => lastJump,
       updater: () => updater,
       quota: () => quota,
+      codexQuota: () => codexQuota,
     };
   }
 }

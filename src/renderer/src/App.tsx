@@ -141,7 +141,7 @@ export function App() {
       data-testid="panel"
     >
       {header}
-      {!detail && <QuotaRow quota={snap.quota} now={t} />}
+      {!detail && <Quotas groups={[["Claude", snap.quota], ["Codex", snap.codexQuota]]} now={t} />}
       <div className="scroll" style={{ maxHeight: Math.max(160, snap.maxHeight - 62) }}>
         {detail ? (
           <div className={view.dir === "in" ? "slide-in" : ""} key={detail.id}>
@@ -265,25 +265,38 @@ function resetLabel(at: number | undefined, now: number): string {
   const d = new Date(at);
   const hm = d.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
   if (at - now < 20 * 3600_000) return hm;
-  return `${d.toLocaleDateString("fr-FR", { weekday: "short" })} ${hm}`;
+  if (at - now < 6 * 24 * 3600_000) return `${d.toLocaleDateString("fr-FR", { weekday: "short" })} ${hm}`;
+  return d.toLocaleDateString("fr-FR", { day: "numeric", month: "short" });
 }
 
-function QuotaRow({ quota, now }: { quota: QuotaView; now: number }) {
-  if (quota.state === "disabled" || quota.state === "loading") return null;
+function Quotas({ groups, now }: { groups: [string, QuotaView][]; now: number }) {
+  const shown = groups.filter(([, q]) => q.state !== "disabled" && q.state !== "loading");
+  if (shown.length === 0) return null;
+  return (
+    <div className="quotas" data-testid="quota">
+      {shown.map(([name, q]) => (
+        <QuotaGroup key={name} name={name} quota={q} now={now} caption={shown.length > 1} />
+      ))}
+    </div>
+  );
+}
+
+function QuotaGroup({ name, quota, now, caption }: { name: string; quota: QuotaView; now: number; caption: boolean }) {
   if (quota.limits.length === 0) {
     return (
-      <div className="quota muted" title={quota.message} data-testid="quota">
-        Quota Claude indisponible
+      <div className="quota muted" title={quota.message}>
+        Quota {name} indisponible
       </div>
     );
   }
   const stale = quota.state !== "ok";
   return (
-    <div className={`quota${stale ? " stale" : ""}`} data-testid="quota" title={stale ? quota.message : undefined}>
+    <div className={`quota${stale ? " stale" : ""}`} title={stale ? quota.message : undefined} data-agent={name}>
+      {caption && <div className="quota-cap">{name}</div>}
       {quota.limits.slice(0, 3).map((l) => {
         const reset = resetLabel(l.resetsAt, now);
         return (
-          <div className={`meter ${l.severity}`} key={l.kind} title={reset ? `${l.label} : ${Math.round(l.percent)} % utilisé · remise à zéro ${reset}` : undefined}>
+          <div className={`meter ${l.severity}`} key={l.kind} title={reset ? `${name} · ${l.label} : ${Math.round(l.percent)} % utilisé · remise à zéro ${reset}` : undefined}>
             <span className="lbl">{l.label}</span>
             <span className="bar">
               <i style={{ width: `${Math.max(2, l.percent)}%` }} />

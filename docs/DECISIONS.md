@@ -136,3 +136,9 @@ Format : **choix** · alternatives · raison.
 - **Pas de « Toujours autoriser »** pour Codex (`updatedPermissions` refusé par Codex), ni de réponse aux questions (aucun hook).
 - **Jump** : `vscode://openai.chatgpt/local/<id>` après mise au premier plan de la bonne fenêtre.
 - **Vérifié en conditions réelles** (`e2e/live-codex.mjs`, CODEX_HOME temporaire) : autoriser, refuser, retour vers VS Code après le délai, badge et activité.
+
+## D25 — Quota Codex
+- **Source** : Codex lui-même, via `codex app-server` → `account/rateLimits/read` (protocole décrit par `codex app-server generate-json-schema`). L'app lance un court processus, lit, puis l'arrête (~0,5 s). Elle **ne lit pas** la connexion Codex.
+- **Fenêtres** : `primary` / `secondary` avec `usedPercent`, `windowDurationMins`, `resetsAt`. Libellés selon la durée (5 h, Jour, Semaine, Mois). Offre free constatée : une fenêtre de 30 jours.
+- **Rythme** : toutes les 5 min et à l'ouverture du panneau (si > 2 min). Rien n'est affiché si Codex n'est pas installé.
+- **Binaire** : extension VS Code `openai.chatgpt-*/bin/<plateforme>/codex`, puis app Codex, Homebrew, npm.

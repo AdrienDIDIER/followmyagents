@@ -229,6 +229,8 @@ export interface AppSnapshot {
   /** état de la mise à jour automatique */
   update: UpdateView;
   quota: QuotaView;
+  /** quota Codex (state "disabled" si Codex est absent ou l'affichage désactivé) */
+  codexQuota: QuotaView;
   version: string;
   serverError?: string;
   /** verre natif actif (sinon fond opaque --panel-fallback) */

@@ -181,12 +181,23 @@ input:focus-visible,
 }
 
 /* ---------- quota Claude ---------- */
+.quotas {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 0 6px 8px;
+  margin-top: -2px;
+}
 .quota {
   display: flex;
   flex-direction: column;
   gap: 4px;
-  padding: 0 6px 8px;
-  margin-top: -2px;
+}
+.quota-cap {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-3);
+  letter-spacing: 0.02em;
 }
 .quota.muted {
   font-size: 11px;

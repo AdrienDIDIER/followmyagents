@@ -92,7 +92,7 @@ npm start
 13. **Vue détail** : clic sur une ligne → « Plan » si l'agent en tient un, sinon « Activité récente » (dernières actions cochées, action en cours qui tourne), bloc Terminal (dernière commande + 3 lignes), « ‹ Agents » pour revenir, mini-mascottes pour passer d'un agent à l'autre.
 13 bis. **Sous-agents / arrière-plan** : demander à l'agent « lance `sleep 30` en arrière-plan et un sous-agent en arrière-plan qui résume le README, puis rends la main ». → La ligne affiche « En arrière-plan · … » avec une mascotte active et « 2 en fond ». La vue détail liste le sous-agent (son action en cours) et la commande. Le résultat du sous-agent apparaît quand il a fini, et tout disparaît de « en fond » à la fin.
 13 ter. **Plans des agents** : clic droit sur l'icône → cocher « Plans des agents (active TodoWrite) » → confirmer. Dans une **nouvelle** session, demander une tâche en plusieurs étapes → la vue détail affiche « Plan » avec les étapes cochées au fur et à mesure, et la ligne un anneau de progression.
-13 quater. **Quota Claude** : sous l'en-tête, deux jauges « Session » et « Semaine » avec le pourcentage et l'heure de remise à zéro (mêmes chiffres que `/usage` dans Claude Code). Sur Mac, autoriser l'accès au trousseau (« Toujours autoriser »).
+13 quater. **Quotas** : sous l'en-tête, les jauges Claude (« Session », « Semaine ») puis Codex (selon l'offre : « 5 h », « Semaine » ou « Mois ») avec le pourcentage et l'heure de remise à zéro (mêmes chiffres que `/usage` dans Claude Code). Sur Mac, autoriser l'accès au trousseau (« Toujours autoriser »).
 13 quinquies. **Codex** : menu → « Installer les hooks Codex… », puis dans Codex : Réglages → Hooks → **Review hooks** (approuver). Nouvelle conversation Codex qui lance une commande nécessitant une approbation → la demande apparaît dans le widget avec le badge « Codex » ; Autoriser / Refuser fonctionnent ; sans réponse en 60 s, la demande repasse dans Codex (VS Code). ↗ ouvre la conversation Codex.
 14. **Raccourci** `Ctrl+Alt+A` (macOS : `Cmd+Option+A`) pendant qu'une demande attend → le panneau s'ouvre avec le focus sur la demande. `Entrée` = Autoriser, `Échap` = Refuser. Sur une question : `1`–`9` puis `Entrée`.
 15. **Détacher** (2e bouton de l'en-tête) → glisser le panneau par son en-tête n'importe où. Fermer / rouvrir : même position. « Rattacher » → retour près de l'icône.
@@ -162,6 +162,7 @@ Détail dans [`docs/DECISIONS.md`](DECISIONS.md). Les plus structurantes :
 - **D20** — « Activité récente » quand l'agent n'a pas de plan + option « Plans des agents » qui active TodoWrite (correctif après retour).
 - **D21** — Choix de la fenêtre VS Code grâce aux fichiers `~/.claude/ide/*.lock` (correctif après retour).
 - **D23** — Quota Claude en direct (service interne d'Anthropic, jeton lu seulement).
+- **D25** — Quota Codex (demandé à Codex via son app-server).
 - **D24** — Agents Codex (hooks `~/.codex/hooks.json`, à approuver dans Codex ; délai de 60 s).
 - **D22** — Mises à jour automatiques : updater maison + Releases GitHub construites par GitHub Actions (`npm run release -- patch`).
 
