@@ -176,6 +176,27 @@ export interface Prefs {
   autoRemoveDoneMin: number;
   /** vérifier les mises à jour (au démarrage puis toutes les 6 h) */
   autoUpdateCheck: boolean;
+  /** afficher le quota Claude (lit le jeton de Claude Code) */
+  showQuota: boolean;
+}
+
+export interface QuotaLimit {
+  /** "session", "weekly_all", "five_hour"… */
+  kind: string;
+  label: string;
+  percent: number;
+  /** "normal" | "warning" | "critical" (fourni par l'API) */
+  severity: string;
+  resetsAt?: number;
+}
+
+export interface QuotaView {
+  /** ok | stale (derniers chiffres, mise à jour échouée) | expired | unavailable | loading | disabled */
+  state: "ok" | "stale" | "expired" | "unavailable" | "loading" | "disabled";
+  limits: QuotaLimit[];
+  fetchedAt?: number;
+  plan?: string;
+  message?: string;
 }
 
 export type UpdateView =
@@ -200,6 +221,7 @@ export interface AppSnapshot {
   hooks: HooksStatus;
   /** état de la mise à jour automatique */
   update: UpdateView;
+  quota: QuotaView;
   version: string;
   serverError?: string;
   /** verre natif actif (sinon fond opaque --panel-fallback) */

@@ -12,6 +12,7 @@ import { trayImage } from "./tray-icon";
 import { jumpToSession, listVsCodeWindowTitles } from "./vscode";
 import { readIdeWindows } from "./ide";
 import { Updater } from "./updater";
+import { QuotaWatcher } from "./quota";
 import { projectsDir, readTranscriptInfo, scanRecentTranscripts } from "./transcripts";
 import { describeTool, messagePreview, titleFromPrompt } from "./describe";
 import { folderTitle } from "./store";
@@ -39,6 +40,7 @@ let tray: Tray | null = null;
 let panel: Panel;
 let quitting = false;
 let updater: Updater;
+let quota: QuotaWatcher;
 const log = (m: string) => {
   if (process.env.FMA_DEBUG) console.log(`[fma] ${m}`);
 };
@@ -68,6 +70,7 @@ function snapshot(): AppSnapshot {
     serverError,
     maxHeight: panel.maxHeight(),
     update: updater.state,
+    quota: cfg.prefs.showQuota ? quota.view : { state: "disabled", limits: [] },
     version: app.getVersion(),
     glass: !NO_GLASS && (process.platform === "darwin" || process.platform === "win32"),
     now: Date.now(),
@@ -148,6 +151,16 @@ function trayMenu(): Menu {
     },
     { label: "Ouvrir le dossier de configuration", click: () => void shell.openPath(app.getPath("userData")) },
     { type: "separator" },
+    { type: "separator" },
+    {
+      label: "Afficher le quota Claude",
+      type: "checkbox",
+      checked: cfg.prefs.showQuota,
+      click: (i) => {
+        setPref("showQuota", i.checked);
+        if (i.checked) void quota.refresh();
+      },
+    },
     ...updateMenuItems(),
     { type: "separator" },
     { label: "Quitter FollowMyAgents", role: "quit" },
@@ -296,6 +309,7 @@ function togglePanel(reason: "click" | "shortcut") {
   else {
     panel.show(reason);
     maybeCheckUpdate();
+    if (cfg.prefs.showQuota && process.env.FMA_E2E !== "1" && Date.now() - (quota.view.fetchedAt ?? 0) > 60_000) void quota.refresh();
     if (reason === "shortcut") panel.win.webContents.send("focus-pending", store.getPendings()[0]?.id ?? null);
   }
 }
@@ -377,6 +391,7 @@ function reconstructSessions() {
 async function start() {
   if (process.platform === "darwin") app.dock?.hide();
   cfg = loadConfig(app.getPath("userData"));
+  quota = new QuotaWatcher({ onChange: () => pushSnapshot() });
   updater = new Updater({
     owner: UPDATE_REPO[0],
     repo: UPDATE_REPO[1],
@@ -461,6 +476,13 @@ async function start() {
 
   setInterval(() => store.tick(), 1000);
 
+  // quota Claude : au démarrage, toutes les 3 min, et à l'ouverture du panneau si > 60 s
+  if (process.env.FMA_E2E !== "1") {
+    const q = () => cfg.prefs.showQuota && void quota.refresh();
+    setTimeout(q, 1_500);
+    setInterval(q, 3 * 60_000);
+  }
+
   // mises à jour : 3 s après le démarrage, puis toutes les 6 h et à chaque ouverture
   // du panneau si la dernière vérification a plus de 30 min (pas en test, sauf API simulée)
   if (process.env.FMA_E2E !== "1" || process.env.FMA_UPDATE_API) {
@@ -500,6 +522,7 @@ async function start() {
       port: () => server.port,
       lastJump: () => lastJump,
       updater: () => updater,
+      quota: () => quota,
     };
   }
 }

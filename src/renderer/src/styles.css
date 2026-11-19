@@ -166,6 +166,69 @@ input:focus-visible,
   color: var(--text-1);
 }
 
+/* ---------- quota Claude ---------- */
+.quota {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 0 6px 8px;
+  margin-top: -2px;
+}
+.quota.muted {
+  font-size: 11px;
+  color: var(--text-3);
+}
+.quota.stale {
+  opacity: 0.6;
+}
+.meter {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--text-3);
+  font-variant-numeric: tabular-nums;
+}
+.meter .lbl {
+  width: 52px;
+  flex: none;
+}
+.meter .bar {
+  flex: 1;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--fill-2);
+  overflow: hidden;
+}
+.meter .bar i {
+  display: block;
+  height: 100%;
+  border-radius: 2px;
+  background: var(--text-2);
+  transition: width 400ms var(--ease-out);
+}
+.meter.warning .bar i {
+  background: var(--attention);
+}
+.meter.critical .bar i {
+  background: var(--danger);
+}
+.meter.warning .pct {
+  color: var(--attention);
+}
+.meter.critical .pct {
+  color: var(--danger);
+}
+.meter .pct {
+  width: 32px;
+  text-align: right;
+  color: var(--text-2);
+}
+.meter .reset {
+  width: 62px;
+  flex: none;
+  text-align: right;
+}
 .sec {
   font-size: 11px;
   font-weight: 600;

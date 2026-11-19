@@ -26,6 +26,7 @@ export const DEFAULT_PREFS: Prefs = {
   pendingTimeoutSec: 580,
   autoRemoveDoneMin: 30,
   autoUpdateCheck: true,
+  showQuota: true,
 };
 
 /** Même dossier que app.getPath("userData") d'Electron. */

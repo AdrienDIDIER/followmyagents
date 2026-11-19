@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
-import type { AppSnapshot, PendingAnswer, Session } from "@shared/types";
+import type { AppSnapshot, PendingAnswer, QuotaView, Session } from "@shared/types";
 import { PermissionBlock, QuestionBlock, type BlockHandle } from "./components/Attention";
 import { AgentRow } from "./components/AgentRow";
 import { Detail } from "./components/Detail";
@@ -141,6 +141,7 @@ export function App() {
       data-testid="panel"
     >
       {header}
+      {!detail && <QuotaRow quota={snap.quota} now={t} />}
       <div className="scroll" style={{ maxHeight: Math.max(160, snap.maxHeight - 62) }}>
         {detail ? (
           <div className={view.dir === "in" ? "slide-in" : ""} key={detail.id}>
@@ -255,6 +256,43 @@ export function App() {
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+function resetLabel(at: number | undefined, now: number): string {
+  if (!at) return "";
+  const d = new Date(at);
+  const hm = d.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
+  if (at - now < 20 * 3600_000) return hm;
+  return `${d.toLocaleDateString("fr-FR", { weekday: "short" })} ${hm}`;
+}
+
+function QuotaRow({ quota, now }: { quota: QuotaView; now: number }) {
+  if (quota.state === "disabled" || quota.state === "loading") return null;
+  if (quota.limits.length === 0) {
+    return (
+      <div className="quota muted" title={quota.message} data-testid="quota">
+        Quota Claude indisponible
+      </div>
+    );
+  }
+  const stale = quota.state !== "ok";
+  return (
+    <div className={`quota${stale ? " stale" : ""}`} data-testid="quota" title={stale ? quota.message : undefined}>
+      {quota.limits.slice(0, 3).map((l) => {
+        const reset = resetLabel(l.resetsAt, now);
+        return (
+          <div className={`meter ${l.severity}`} key={l.kind} title={reset ? `${l.label} : ${Math.round(l.percent)} % utilisé · remise à zéro ${reset}` : undefined}>
+            <span className="lbl">{l.label}</span>
+            <span className="bar">
+              <i style={{ width: `${Math.max(2, l.percent)}%` }} />
+            </span>
+            <span className="pct">{Math.round(l.percent)} %</span>
+            {reset && <span className="reset">↻ {reset}</span>}
+          </div>
+        );
+      })}
     </div>
   );
 }
