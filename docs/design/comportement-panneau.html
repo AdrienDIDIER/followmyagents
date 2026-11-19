@@ -1,0 +1,107 @@
+<svg width="0" height="0" style="position:absolute">
+  <defs>
+    <symbol id="m" viewBox="0 0 28 32">
+      <rect x="2" y="1" width="24" height="25" rx="8" fill="currentColor"/>
+      <rect x="8" y="25" width="3" height="6" rx="1.5" fill="currentColor"/>
+      <rect x="17" y="25" width="3" height="6" rx="1.5" fill="currentColor"/>
+      <rect x="8.5" y="10" width="3" height="4.5" rx="1.5" fill="#000" opacity=".78"/>
+      <rect x="16.5" y="10" width="3" height="4.5" rx="1.5" fill="#000" opacity=".78"/>
+    </symbol>
+    <symbol id="m-alert" viewBox="0 0 28 32">
+      <rect x="2" y="1" width="24" height="25" rx="8" fill="currentColor"/>
+      <rect x="8" y="25" width="3" height="6" rx="1.5" fill="currentColor"/>
+      <rect x="17" y="25" width="3" height="6" rx="1.5" fill="currentColor"/>
+      <circle cx="10" cy="12" r="2.6" fill="#000" opacity=".8"/>
+      <circle cx="18" cy="12" r="2.6" fill="#000" opacity=".8"/>
+      <rect x="11.5" y="18" width="5" height="2" rx="1" fill="#000" opacity=".55"/>
+    </symbol>
+  </defs>
+</svg>
+
+<style>
+  .sf{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Inter",system-ui,sans-serif;-webkit-font-smoothing:antialiased;letter-spacing:-.01em}
+  .mono{font-family:"SF Mono",ui-monospace,Menlo,monospace}
+  .desk{background:radial-gradient(120% 90% at 20% 10%,#3a2a5c 0%,#1a1f3a 40%,#0b0d14 100%);border-radius:14px;min-height:500px;position:relative;overflow:hidden;color:#f5f5f7}
+  .menubar{height:26px;background:rgba(20,20,24,.55);backdrop-filter:blur(20px);display:flex;align-items:center;justify-content:space-between;padding:0 12px;font-size:12px}
+  .menubar .l{display:flex;gap:14px;font-weight:500}
+  .menubar .r{display:flex;gap:12px;align-items:center;color:rgba(255,255,255,.85)}
+  .mb-icon{display:flex;align-items:center;gap:4px;padding:2px 6px;border-radius:5px}
+  .mb-icon.on{background:rgba(255,255,255,.18)}
+  .mb-icon svg{width:12px;height:14px}
+  .badge{font-size:10.5px;font-weight:700;color:#ff9f0a}
+  .panel{position:absolute;width:300px;background:rgba(30,30,34,.62);backdrop-filter:blur(30px) saturate(160%);-webkit-backdrop-filter:blur(30px) saturate(160%);border:.5px solid rgba(255,255,255,.14);border-radius:16px;box-shadow:0 20px 50px rgba(0,0,0,.45);padding:9px}
+  .head{display:flex;justify-content:space-between;align-items:center;padding:3px 6px 8px;font-size:12.5px}
+  .head b{font-weight:600}.head span{color:rgba(235,235,245,.5);font-size:11.5px}
+  .sec{font-size:10.5px;font-weight:600;color:rgba(235,235,245,.45);padding:7px 6px 5px}
+  .attn{background:rgba(255,255,255,.07);border-radius:11px;padding:10px}
+  .row{display:flex;align-items:center;gap:9px}
+  .t{font-size:12.5px;font-weight:600}.s{font-size:11.5px;color:rgba(235,235,245,.5)}
+  .s.o{color:#ff9f0a;font-weight:500}
+  .cmd{margin:8px 0;background:rgba(0,0,0,.35);border-radius:7px;padding:7px 9px;font-size:11px;color:rgba(235,235,245,.85)}
+  .btns{display:flex;gap:7px}.btn{flex:1;text-align:center;font-size:12px;font-weight:500;padding:5px 0;border-radius:7px;background:rgba(255,255,255,.12)}.btn.p{background:#0a84ff}
+  .item{display:flex;align-items:center;gap:9px;padding:7px 6px}
+  .item .txt{flex:1}
+  .ring{width:20px;height:20px}
+  .note{position:absolute;font-size:11px;color:rgba(255,255,255,.55);max-width:200px;line-height:1.35}
+  .caret{position:absolute;width:12px;height:12px;background:rgba(40,40,46,.9);transform:rotate(45deg);border-left:.5px solid rgba(255,255,255,.14);border-top:.5px solid rgba(255,255,255,.14)}
+</style>
+
+<h2>Comment le panneau vit-il sur ton écran ?</h2>
+<p class="subtitle">Même style (A, verre macOS) dans les deux cas. Ce qui change, c'est quand il est visible.</p>
+
+<div class="cards">
+
+  <div class="card" data-choice="flottant" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div class="desk sf">
+        <div class="menubar"><div class="l"><span></span><span>Code</span><span>Fichier</span><span>Édition</span></div><div class="r"><span>Jeu. 14:32</span></div></div>
+        <div class="panel" style="top:40px;right:14px">
+          <div class="head"><b>Agents</b><span>4 actifs</span></div>
+          <div class="sec">Attend ta réponse</div>
+          <div class="attn">
+            <div class="row"><svg width="22" height="26" style="color:#ff9f0a"><use href="#m-alert"/></svg><div><div class="t">Idea Scout</div><div class="s o">Veut exécuter une commande</div></div></div>
+            <div class="cmd mono">npx hyperframes render . -o out.mp4</div>
+            <div class="btns"><div class="btn">Refuser</div><div class="btn p">Autoriser</div></div>
+          </div>
+          <div class="sec">En cours</div>
+          <div class="item"><svg width="20" height="24" style="color:#0a84ff"><use href="#m"/></svg><div class="txt"><div class="t" style="font-weight:500">Polish · Watch Videos</div><div class="s">Rendu des animations</div></div></div>
+          <div class="item"><svg width="20" height="24" style="color:#ff375f"><use href="#m"/></svg><div class="txt"><div class="t" style="font-weight:500">Breakdown reel</div><div class="s">Lecture du transcript</div></div></div>
+          <div class="item"><svg width="20" height="24" style="color:#bf5af2"><use href="#m"/></svg><div class="txt"><div class="t" style="font-weight:500">Cheat sheet · Tokens</div><div class="s">Rédaction du brouillon</div></div></div>
+        </div>
+        <div class="note" style="left:16px;bottom:16px">Toujours visible dans le coin, par-dessus tes fenêtres. Déplaçable. Réductible avec un raccourci.</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>1 — Panneau flottant permanent</h3>
+      <p>Comme dans la vidéo : un coup d'œil suffit, sans aucun clic. En contrepartie, il occupe toujours un coin de l'écran, même quand tout va bien.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="barre-menus" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div class="desk sf">
+        <div class="menubar"><div class="l"><span></span><span>Code</span><span>Fichier</span><span>Édition</span></div>
+          <div class="r"><span class="mb-icon on"><svg style="color:#fff"><use href="#m"/></svg><span class="badge">1</span></span><span>Jeu. 14:32</span></div></div>
+        <div class="caret" style="top:30px;right:96px"></div>
+        <div class="panel" style="top:35px;right:14px">
+          <div class="head"><b>Agents</b><span>4 actifs</span></div>
+          <div class="sec">Attend ta réponse</div>
+          <div class="attn">
+            <div class="row"><svg width="22" height="26" style="color:#ff9f0a"><use href="#m-alert"/></svg><div><div class="t">Idea Scout</div><div class="s o">Veut exécuter une commande</div></div></div>
+            <div class="cmd mono">npx hyperframes render . -o out.mp4</div>
+            <div class="btns"><div class="btn">Refuser</div><div class="btn p">Autoriser</div></div>
+          </div>
+          <div class="sec">En cours</div>
+          <div class="item"><svg width="20" height="24" style="color:#0a84ff"><use href="#m"/></svg><div class="txt"><div class="t" style="font-weight:500">Polish · Watch Videos</div><div class="s">Rendu des animations</div></div></div>
+          <div class="item"><svg width="20" height="24" style="color:#ff375f"><use href="#m"/></svg><div class="txt"><div class="t" style="font-weight:500">Breakdown reel</div><div class="s">Lecture du transcript</div></div></div>
+        </div>
+        <div class="note" style="left:16px;bottom:16px">Au repos : juste une mascotte dans la barre des menus (+ un chiffre orange si quelqu'un t'attend). Le panneau descend tout seul quand un agent a besoin de toi, et se referme une fois que tu as répondu.</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>2 — Icône dans la barre des menus</h3>
+      <p>Comme les outils natifs du Mac (Wi-Fi, batterie…). L'écran reste libre, et le panneau ne s'impose que quand c'est utile. Pour voir les agents en cours, il faut cliquer sur l'icône.</p>
+    </div>
+  </div>
+
+</div>

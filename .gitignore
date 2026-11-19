@@ -1,0 +1,10 @@
+.superpowers/
+node_modules/
+out/
+dist/
+release/
+sandbox/
+phase0/logs/
+test-results/
+*.log
+.DS_Store

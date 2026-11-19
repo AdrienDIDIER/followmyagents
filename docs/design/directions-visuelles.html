@@ -1,0 +1,179 @@
+<svg width="0" height="0" style="position:absolute">
+  <defs>
+    <symbol id="m" viewBox="0 0 28 32">
+      <rect x="2" y="1" width="24" height="25" rx="8" fill="currentColor"/>
+      <rect x="8" y="25" width="3" height="6" rx="1.5" fill="currentColor"/>
+      <rect x="17" y="25" width="3" height="6" rx="1.5" fill="currentColor"/>
+      <rect x="8.5" y="10" width="3" height="4.5" rx="1.5" fill="#000" opacity=".78"/>
+      <rect x="16.5" y="10" width="3" height="4.5" rx="1.5" fill="#000" opacity=".78"/>
+    </symbol>
+    <symbol id="m-alert" viewBox="0 0 28 32">
+      <rect x="2" y="1" width="24" height="25" rx="8" fill="currentColor"/>
+      <rect x="8" y="25" width="3" height="6" rx="1.5" fill="currentColor"/>
+      <rect x="17" y="25" width="3" height="6" rx="1.5" fill="currentColor"/>
+      <circle cx="10" cy="12" r="2.6" fill="#000" opacity=".8"/>
+      <circle cx="18" cy="12" r="2.6" fill="#000" opacity=".8"/>
+      <rect x="11.5" y="18" width="5" height="2" rx="1" fill="#000" opacity=".55"/>
+    </symbol>
+  </defs>
+</svg>
+
+<style>
+  .fma-stage{background:radial-gradient(120% 90% at 20% 10%,#3a2a5c 0%,#1a1f3a 40%,#0b0d14 100%);border-radius:14px;padding:28px 20px;display:flex;justify-content:center;align-items:flex-start;min-height:520px;position:relative;overflow:hidden}
+  .fma-stage::after{content:"";position:absolute;inset:auto -10% -30% 30%;height:60%;background:radial-gradient(closest-side,rgba(255,140,90,.28),transparent);pointer-events:none}
+  .sf{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Inter",system-ui,sans-serif;-webkit-font-smoothing:antialiased;letter-spacing:-.01em}
+  .mono{font-family:"SF Mono",ui-monospace,"JetBrains Mono",Menlo,monospace}
+  .ic{width:14px;height:14px;opacity:.55}
+  .row{display:flex;align-items:center;gap:10px}
+
+  /* ---------- A : Verre macOS ---------- */
+  .a-panel{position:relative;z-index:1;width:330px;background:rgba(30,30,34,.62);backdrop-filter:blur(30px) saturate(160%);-webkit-backdrop-filter:blur(30px) saturate(160%);border:.5px solid rgba(255,255,255,.14);border-radius:18px;box-shadow:0 20px 50px rgba(0,0,0,.45);color:#f5f5f7;padding:10px}
+  .a-head{display:flex;justify-content:space-between;align-items:center;padding:4px 6px 10px}
+  .a-head b{font-size:13px;font-weight:600}
+  .a-head span{font-size:12px;color:rgba(235,235,245,.5)}
+  .a-sec{font-size:11px;font-weight:600;color:rgba(235,235,245,.45);padding:8px 6px 6px;text-transform:none}
+  .a-attn{background:rgba(255,255,255,.07);border-radius:12px;padding:12px}
+  .a-attn .t{font-size:13px;font-weight:600}
+  .a-attn .s{font-size:12px;color:#ff9f0a;font-weight:500}
+  .a-cmd{margin:10px 0;background:rgba(0,0,0,.35);border-radius:8px;padding:8px 10px;font-size:11.5px;color:rgba(235,235,245,.85)}
+  .a-btns{display:flex;gap:8px;align-items:center}
+  .a-btn{flex:1;text-align:center;font-size:12.5px;font-weight:500;padding:6px 0;border-radius:8px;background:rgba(255,255,255,.12)}
+  .a-btn.p{background:#0a84ff;color:#fff}
+  .a-link{font-size:11.5px;color:rgba(235,235,245,.5);text-align:center;margin-top:8px}
+  .a-item{display:flex;align-items:center;gap:10px;padding:8px 6px;border-radius:10px}
+  .a-item .txt{flex:1;min-width:0}
+  .a-item .t{font-size:13px;font-weight:500}
+  .a-item .s{font-size:11.5px;color:rgba(235,235,245,.5);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .ring{width:22px;height:22px}
+
+  /* ---------- B : Island ---------- */
+  .b-wrap{position:relative;z-index:1;display:flex;flex-direction:column;align-items:flex-end;gap:22px;width:340px}
+  .b-label{font-size:10.5px;color:rgba(255,255,255,.45);align-self:flex-start;text-transform:uppercase;letter-spacing:.06em}
+  .b-pill{background:#000;border-radius:999px;padding:7px 12px 7px 9px;display:flex;align-items:center;gap:6px;box-shadow:0 8px 24px rgba(0,0,0,.5);color:#fff}
+  .b-pill svg{width:16px;height:18px}
+  .b-pill .dot{width:6px;height:6px;border-radius:50%;background:#ff9f0a;margin-left:4px}
+  .b-pill .n{font-size:12px;font-weight:600;color:#ff9f0a}
+  .b-big{background:#000;border-radius:28px;padding:16px;width:330px;color:#f5f5f7;box-shadow:0 20px 50px rgba(0,0,0,.55)}
+  .b-big .t{font-size:14px;font-weight:600}
+  .b-big .s{font-size:12px;color:rgba(235,235,245,.55)}
+  .b-q{font-size:15px;font-weight:600;margin:14px 0 10px}
+  .b-opt{display:flex;justify-content:space-between;align-items:center;font-size:13px;padding:10px 12px;border-radius:12px;background:#1c1c1e;margin-bottom:6px}
+  .b-opt.sel{background:#0a84ff;color:#fff}
+  .b-foot{display:flex;justify-content:space-between;align-items:center;margin-top:10px}
+  .b-foot .l{font-size:12px;color:rgba(235,235,245,.5)}
+  .b-foot .p{font-size:13px;font-weight:600;background:#fff;color:#000;border-radius:999px;padding:6px 16px}
+
+  /* ---------- C : OLED typographique ---------- */
+  .c-panel{position:relative;z-index:1;width:330px;background:#000;border-radius:22px;padding:18px 16px;color:#f5f5f7;box-shadow:0 20px 50px rgba(0,0,0,.55)}
+  .c-h{font-size:26px;font-weight:700;letter-spacing:-.03em;line-height:1}
+  .c-sub{font-size:12px;color:rgba(235,235,245,.5);margin:6px 0 16px}
+  .c-sub em{font-style:normal;color:#ff375f;font-weight:600}
+  .c-item{padding:12px 0;border-top:.5px solid rgba(255,255,255,.1)}
+  .c-item .t{font-size:14px;font-weight:600}
+  .c-item .s{font-size:12px;color:rgba(235,235,245,.5)}
+  .c-bar{height:3px;border-radius:2px;background:rgba(255,255,255,.1);margin-top:8px;overflow:hidden}
+  .c-bar i{display:block;height:100%;border-radius:2px}
+  .c-attn{margin:4px -8px;padding:12px 8px;border-radius:14px;background:rgba(255,55,95,.13)}
+  .c-attn .s{color:#ff375f;font-weight:500}
+  .c-btns{display:flex;gap:8px;margin-top:10px}
+  .c-btn{font-size:12.5px;font-weight:600;padding:6px 14px;border-radius:999px;background:rgba(255,255,255,.12)}
+  .c-btn.p{background:#ff375f;color:#fff}
+</style>
+
+<h2>Quelle direction visuelle te parle le plus ?</h2>
+<p class="subtitle">Trois façons d'interpréter « moderne, sombre, minimaliste à la Apple ». Mêmes données partout : 4 agents, dont un qui attend ta réponse. Ignore les détails, regarde l'ambiance générale.</p>
+
+<div class="cards">
+
+  <!-- A -->
+  <div class="card" data-choice="a-verre" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div class="fma-stage sf">
+        <div class="a-panel">
+          <div class="a-head"><b>Agents</b><span>4 actifs</span></div>
+          <div class="a-sec">Attend ta réponse</div>
+          <div class="a-attn">
+            <div class="row">
+              <svg width="26" height="30" style="color:#ff9f0a"><use href="#m-alert"/></svg>
+              <div><div class="t">Idea Scout</div><div class="s">Veut exécuter une commande</div></div>
+            </div>
+            <div class="a-cmd mono">npx hyperframes render . -o out.mp4</div>
+            <div class="a-btns"><div class="a-btn">Refuser</div><div class="a-btn p">Autoriser</div></div>
+            <div class="a-link">Ouvrir dans VS Code</div>
+          </div>
+          <div class="a-sec">En cours</div>
+          <div class="a-item"><svg width="22" height="26" style="color:#0a84ff"><use href="#m"/></svg><div class="txt"><div class="t">Polish · Watch Videos</div><div class="s">Rendu des animations</div></div>
+            <svg class="ring" viewBox="0 0 22 22"><circle cx="11" cy="11" r="9" stroke="rgba(255,255,255,.15)" stroke-width="2.5" fill="none"/><circle cx="11" cy="11" r="9" stroke="#0a84ff" stroke-width="2.5" fill="none" stroke-dasharray="40.4 56.5" stroke-linecap="round" transform="rotate(-90 11 11)"/></svg></div>
+          <div class="a-item"><svg width="22" height="26" style="color:#ff375f"><use href="#m"/></svg><div class="txt"><div class="t">Breakdown reel</div><div class="s">Lecture du transcript</div></div>
+            <svg class="ring" viewBox="0 0 22 22"><circle cx="11" cy="11" r="9" stroke="rgba(255,255,255,.15)" stroke-width="2.5" fill="none"/><circle cx="11" cy="11" r="9" stroke="#ff375f" stroke-width="2.5" fill="none" stroke-dasharray="22.6 56.5" stroke-linecap="round" transform="rotate(-90 11 11)"/></svg></div>
+          <div class="a-item"><svg width="22" height="26" style="color:#bf5af2"><use href="#m"/></svg><div class="txt"><div class="t">Cheat sheet · Tokens</div><div class="s">Rédaction du brouillon</div></div>
+            <svg class="ring" viewBox="0 0 22 22"><circle cx="11" cy="11" r="9" stroke="rgba(255,255,255,.15)" stroke-width="2.5" fill="none"/><circle cx="11" cy="11" r="9" stroke="#bf5af2" stroke-width="2.5" fill="none" stroke-dasharray="33.9 56.5" stroke-linecap="round" transform="rotate(-90 11 11)"/></svg></div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>A — Verre macOS</h3>
+      <p>Panneau translucide flouté, comme le Centre de contrôle. Ce qui t'attend est en haut, mis à part. Le reste tient sur une ligne, avec un anneau de progression. Accent bleu système, orange pour l'attention. L'option la plus « native ».</p>
+    </div>
+  </div>
+
+  <!-- B -->
+  <div class="card" data-choice="b-island" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div class="fma-stage sf">
+        <div class="b-wrap">
+          <div class="b-label">Au repos</div>
+          <div class="b-pill">
+            <svg style="color:#0a84ff"><use href="#m"/></svg>
+            <svg style="color:#ff375f"><use href="#m-alert"/></svg>
+            <svg style="color:#ff9f0a"><use href="#m"/></svg>
+            <svg style="color:#bf5af2"><use href="#m"/></svg>
+            <span class="dot"></span><span class="n">1</span>
+          </div>
+          <div class="b-label">Quand un agent a besoin de toi</div>
+          <div class="b-big">
+            <div class="row">
+              <svg width="28" height="32" style="color:#ff375f"><use href="#m-alert"/></svg>
+              <div style="flex:1"><div class="t">Breakdown reel</div><div class="s">Une question pour toi</div></div>
+            </div>
+            <div class="b-q">Quel hook utiliser ?</div>
+            <div class="b-opt sel">Celui sur la douleur <span>✓</span></div>
+            <div class="b-opt">Celui avec un chiffre</div>
+            <div class="b-opt">Celui en question</div>
+            <div class="b-foot"><span class="l">Répondre dans VS Code</span><span class="p">Envoyer</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>B — Pastille « Dynamic Island »</h3>
+      <p>Au repos, juste une petite pastille noire avec les mascottes. Elle s'agrandit seulement quand un agent te sollicite, puis se referme. Très discret, très Apple. Pour voir le détail des agents en cours, il faut cliquer.</p>
+    </div>
+  </div>
+
+  <!-- C -->
+  <div class="card" data-choice="c-oled" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div class="fma-stage sf">
+        <div class="c-panel">
+          <div class="c-h">4 agents</div>
+          <div class="c-sub"><em>1 t'attend</em> · 3 travaillent</div>
+          <div class="c-attn">
+            <div class="row"><svg width="24" height="28" style="color:#ff375f"><use href="#m-alert"/></svg>
+              <div><div class="t" style="font-size:14px;font-weight:600">Breakdown reel</div><div class="s" style="font-size:12px">Veut exécuter une commande</div></div></div>
+            <div class="mono" style="font-size:11.5px;color:rgba(235,235,245,.75);margin-top:8px">npx hyperframes render . -o out.mp4</div>
+            <div class="c-btns"><span class="c-btn p">Autoriser</span><span class="c-btn">Refuser</span></div>
+          </div>
+          <div class="c-item"><div class="row"><svg width="20" height="24" style="color:#0a84ff"><use href="#m"/></svg><div style="flex:1"><div class="t">Polish · Watch Videos</div><div class="s">Rendu des animations · 5/7</div></div></div><div class="c-bar"><i style="width:71%;background:#0a84ff"></i></div></div>
+          <div class="c-item"><div class="row"><svg width="20" height="24" style="color:#ff9f0a"><use href="#m"/></svg><div style="flex:1"><div class="t">Idea Scout</div><div class="s">140 vidéos analysées · 4/6</div></div></div><div class="c-bar"><i style="width:66%;background:#ff9f0a"></i></div></div>
+          <div class="c-item"><div class="row"><svg width="20" height="24" style="color:#bf5af2"><use href="#m"/></svg><div style="flex:1"><div class="t">Cheat sheet · Tokens</div><div class="s">Rédaction du brouillon · 3/5</div></div></div><div class="c-bar"><i style="width:60%;background:#bf5af2"></i></div></div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>C — Noir profond typographique</h3>
+      <p>Fond noir pur, gros titre en résumé (« 4 agents, 1 t'attend »), à la manière des apps Forme / Activité d'Apple. Aucune couleur d'accent globale : chaque agent garde la sienne, et c'est elle qui s'allume quand il a besoin de toi.</p>
+    </div>
+  </div>
+
+</div>
