@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { cleanEnv, folderName, isAccessibilityError, jumpToSession, sessionUri, type RunResult } from "../src/main/vscode";
+import { cleanEnv, folderName, isAccessibilityError, jumpToSession, permissionErrorKind, sessionUri, type RunResult } from "../src/main/vscode";
 
 const ok = (stdout: string): RunResult => ({ code: 0, stdout, stderr: "" });
 
@@ -66,7 +66,7 @@ describe("jump macOS", () => {
       stderr: "execution error: System Events got an error: osascript is not allowed assistive access. (-1719)",
     }, [cwd, "/usr/local/bin/code"]);
     expect(await jumpToSession("abc", cwd, deps)).toBe("activated-app");
-    expect(onAccessibilityDenied).toHaveBeenCalledOnce();
+    expect(onAccessibilityDenied).toHaveBeenCalledWith("accessibility");
     expect(calls.launch).toEqual([["open", ["-a", "Visual Studio Code"]]]);
     expect(calls.open).toHaveLength(1);
   });
@@ -121,6 +121,11 @@ describe("utilitaires", () => {
   it("folderName", () => {
     expect(folderName("C:\\work\\a\\b")).toBe("b");
     expect(folderName("/Users/me/proj/")).toBe("proj");
+  });
+  it("permissionErrorKind distingue Automatisation et Accessibilité", () => {
+    expect(permissionErrorKind({ code: 1, stdout: "", stderr: "Not authorized to send Apple events to System Events. (-1743)" })).toBe("automation");
+    expect(permissionErrorKind({ code: 1, stdout: "", stderr: "osascript is not allowed assistive access. (-1719)" })).toBe("accessibility");
+    expect(permissionErrorKind({ code: 1, stdout: "", stderr: "syntax error" })).toBeNull();
   });
   it("isAccessibilityError", () => {
     expect(isAccessibilityError({ code: 1, stdout: "", stderr: "(-25211)" })).toBe(true);

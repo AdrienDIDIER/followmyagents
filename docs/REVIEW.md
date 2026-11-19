@@ -101,7 +101,10 @@ npm start
 3. **Verre** : le bureau doit être flouté derrière le panneau, **coins arrondis propres** (pas de coin carré « vitré » qui dépasse). Si le rendu n'est pas bon : essayer `FMA_VIBRANCY=hud npm start`, et me le signaler (réglages dans `src/main/panel.ts`).
 4. Le panneau ne prend pas le focus quand il s'ouvre seul (NSPanel `type: "panel"`), et un clic sur « Autoriser » ne fait pas quitter l'éditeur.
 5. **Espaces** : changer de bureau virtuel → le panneau reste visible. Mettre une app en plein écran → le panneau reste par-dessus.
-6. **Jump (↗)** : au 1er usage, macOS demande d'autoriser FollowMyAgents dans **Réglages Système → Confidentialité et sécurité → Accessibilité** (un message l'explique). Activer l'option, puis réessayer ↗.
+6. **Jump (↗)** : deux autorisations sont nécessaires (menu de la mascotte → **Autorisations macOS…**, boutons qui ouvrent directement la bonne page) :
+   - **Accessibilité** : activer FollowMyAgents ;
+   - **Automatisation** : sous FollowMyAgents, cocher **Événements Système** (ou répondre OK à « FollowMyAgents souhaite contrôler Événements Système »).
+   Lancée avec `npm start`, c'est **Terminal** (ou **Visual Studio Code**) qu'il faut autoriser. Quitter et relancer l'app après avoir changé ces réglages.
    → Avec 2 fenêtres VS Code (dossiers A et B) : ↗ sur une session de B fait passer **la fenêtre B** devant (même réduite dans le Dock), sur l'onglet de la session. Si ça ne marche pas : `FMA_DEBUG=1 npm start` affiche `focus-window-mac : …` (titre trouvé, ou erreur), et `osascript -e 'tell application "System Events" to get name of every window of process "Code"'` montre les titres réels des fenêtres. Envoyez-moi les deux.
 7. **Notifications** : macOS demande l'autorisation à la 1re notification. Une app non signée peut ne pas apparaître dans Réglages > Notifications : à vérifier.
 8. Relancer la batterie automatisée : `npm test && npm run e2e`, puis `npm run e2e:live` (le test natif est propre à Windows).

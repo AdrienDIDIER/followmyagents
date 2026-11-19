@@ -121,6 +121,16 @@ function trayMenu(): Menu {
       checked: todoToolsEnabled(SETTINGS_PATH),
       click: (i) => void toggleTodoTools(i.checked),
     },
+    ...(process.platform === "darwin"
+      ? [
+          {
+            label: systemPreferences.isTrustedAccessibilityClient(false)
+              ? "Autorisations macOS… (Accessibilité ✓)"
+              : "Autorisations macOS… (pour ↗)",
+            click: () => void showMacPermissions(),
+          },
+        ]
+      : []),
     { label: "Ouvrir le dossier de configuration", click: () => void shell.openPath(app.getPath("userData")) },
     { type: "separator" },
     { label: "Quitter FollowMyAgents", role: "quit" },
@@ -396,21 +406,51 @@ async function start() {
   }
 }
 
-// macOS : choisir la bonne fenêtre VS Code demande l'accès « Accessibilité » (une fois).
-let accessibilityAsked = false;
-function askAccessibility() {
-  if (process.platform !== "darwin" || accessibilityAsked) return;
-  accessibilityAsked = true;
-  // ouvre la demande système (ajoute l'app à la liste Accessibilité)
-  systemPreferences.isTrustedAccessibilityClient(true);
-  void dialog.showMessageBox({
-    type: "info",
+// macOS : choisir la bonne fenêtre VS Code demande deux autorisations :
+// « Accessibilité » (lire et lever les fenêtres) et « Automatisation » (piloter Événements Système).
+const MAC_SETTINGS = {
+  accessibility: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility",
+  automation: "x-apple.systempreferences:com.apple.preference.security?Privacy_Automation",
+};
+let permissionAsked = false;
+function askAccessibility(kind: "accessibility" | "automation") {
+  if (process.platform !== "darwin" || permissionAsked) return;
+  permissionAsked = true;
+  void showMacPermissions(kind);
+}
+
+async function showMacPermissions(kind?: "accessibility" | "automation") {
+  if (process.platform !== "darwin") return;
+  const trusted = systemPreferences.isTrustedAccessibilityClient(false);
+  const r = await dialog.showMessageBox({
+    type: kind ? "warning" : "info",
     title: "FollowMyAgents",
-    message: "Autoriser FollowMyAgents à choisir la fenêtre VS Code",
+    message: "Autorisations pour ramener la bonne fenêtre VS Code",
     detail:
-      "Pour ramener la bonne fenêtre VS Code au premier plan, activez FollowMyAgents dans Réglages Système → Confidentialité et sécurité → Accessibilité, puis réessayez ↗.\n\n" +
-      "En attendant, VS Code est seulement activé : l'onglet s'ouvre dans la fenêtre active.",
+      [
+        kind === "automation"
+          ? "macOS a refusé à FollowMyAgents le contrôle de « Événements Système »."
+          : kind === "accessibility"
+            ? "macOS a refusé l'accès « Accessibilité » à FollowMyAgents."
+            : "",
+        `1. Accessibilité : activer FollowMyAgents${trusted ? " (déjà accordé ✓)" : ""}.`,
+        "2. Automatisation : sous FollowMyAgents, cocher « Événements Système ».",
+        "Lancée avec npm start, autorisez plutôt Terminal (ou Visual Studio Code si vous lancez depuis son terminal). Puis quittez et relancez FollowMyAgents.",
+        "En attendant, ↗ active seulement VS Code.",
+      ]
+        .filter(Boolean)
+        .join("\n\n"),
+    buttons: ["Ouvrir Accessibilité", "Ouvrir Automatisation", "Plus tard"],
+    defaultId: kind === "automation" ? 1 : 0,
+    cancelId: 2,
   });
+  if (r.response === 0) {
+    // ajoute l'app à la liste Accessibilité (case à cocher), puis ouvre la page au premier plan
+    systemPreferences.isTrustedAccessibilityClient(true);
+    setTimeout(() => void shell.openExternal(MAC_SETTINGS.accessibility), 400);
+  } else if (r.response === 1) {
+    void shell.openExternal(MAC_SETTINGS.automation);
+  }
 }
 
 let lastJump: { sessionId: string; cwd: string } | null = null;

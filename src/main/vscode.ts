@@ -70,8 +70,8 @@ export interface JumpDeps {
   scriptsDir: string;
   platform?: NodeJS.Platform;
   log?: (m: string) => void;
-  /** macOS : l'accès « Accessibilité » manque pour choisir la fenêtre */
-  onAccessibilityDenied?: () => void;
+  /** macOS : une autorisation manque pour choisir la fenêtre */
+  onAccessibilityDenied?: (kind: "accessibility" | "automation") => void;
   run?: Runner;
   launch?: Launcher;
   exists?: (p: string) => boolean;
@@ -86,8 +86,16 @@ export type FocusOutcome =
   | "activated-app" // VS Code activé sans pouvoir choisir la fenêtre
   | "failed";
 
+/** Autorisation macOS manquante : Automatisation (piloter « Événements Système ») ou Accessibilité. */
+export function permissionErrorKind(r: RunResult): "accessibility" | "automation" | null {
+  const t = r.stderr + r.stdout;
+  if (/-1743|not authori[sz]ed to send apple events|pas autoris.*apple ?events/i.test(t)) return "automation";
+  if (/-1719|-25211|assistive|accessibility|accessibilit|not allowed/i.test(t)) return "accessibility";
+  return null;
+}
+
 export function isAccessibilityError(r: RunResult): boolean {
-  return /-1719|-25211|-1743|assistive|accessibility|not allowed|n.est pas autoris/i.test(r.stderr + r.stdout);
+  return permissionErrorKind(r) !== null;
 }
 
 export async function focusVsCodeWindow(cwd: string, deps: JumpDeps): Promise<FocusOutcome> {
@@ -131,8 +139,9 @@ export async function focusVsCodeWindow(cwd: string, deps: JumpDeps): Promise<Fo
     deps.log?.(`focus-window-mac : code=${r.code} ${r.stdout.trim()} ${r.stderr.trim()}`);
     if (r.stdout.startsWith("FOCUSED")) return "focused";
     if (r.stdout.startsWith("NOTFOUND") || r.stdout.startsWith("NOAPP")) return openFolder();
-    if (isAccessibilityError(r)) {
-      deps.onAccessibilityDenied?.();
+    const denied = permissionErrorKind(r);
+    if (denied) {
+      deps.onAccessibilityDenied?.(denied);
       // sans Accessibilité on ne peut pas choisir la fenêtre : on active seulement VS Code
       // (ouvrir le dossier risquerait de créer une nouvelle fenêtre)
       launch("open", ["-a", "Visual Studio Code"]);
