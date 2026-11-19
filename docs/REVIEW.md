@@ -47,6 +47,11 @@ Captures : `docs/screenshots/` (`maquette-A.png` = rendu de la maquette, à comp
 
 ## 2. Lancer l'app
 
+> **Historique réécrit le 2026-11-19** (retrait des captures de la vidéo d'origine avant le passage du dépôt en public). Un clone fait avant cette date se resynchronise avec :
+> `git fetch && git checkout main && git reset --hard origin/main`
+>
+> **Installation recommandée** : télécharger l'app dans les [Releases GitHub](https://github.com/AdrienDIDIER/followmyagents/releases) (`.dmg` sur Mac, `Setup.exe` sur Windows). Les versions suivantes s'installent ensuite depuis l'app (bandeau « Version disponible »).
+
 Prérequis : Node 22+ et npm.
 
 ```bash
