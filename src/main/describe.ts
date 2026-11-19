@@ -24,6 +24,19 @@ function host(url: string): string {
   }
 }
 
+/** Fichiers touchés par un patch Codex (apply_patch : « *** Update File: chemin »). */
+export function patchFiles(patch: string): string[] {
+  const out: string[] = [];
+  for (const m of patch.matchAll(/^\*\*\* (?:Add|Update|Delete) File: (.+)$/gm)) out.push(m[1].trim());
+  return out;
+}
+
+function patchSummary(input: Input): string {
+  const files = patchFiles(str(input.command) || str(input.patch) || str(input.input));
+  if (files.length === 0) return "des fichiers";
+  return files.length === 1 ? basename(files[0]) : `${basename(files[0])} et ${files.length - 1} autre${files.length > 2 ? "s" : ""}`;
+}
+
 /** Sous-titre « action en cours » pour un PreToolUse. */
 export function describeTool(toolName: string, input: Input = {}): string {
   const file = basename(str(input.file_path) || str(input.notebook_path) || str(input.path));
@@ -39,6 +52,8 @@ export function describeTool(toolName: string, input: Input = {}): string {
     case "MultiEdit":
     case "NotebookEdit":
       return `Modification de ${file}`;
+    case "apply_patch":
+      return truncate(`Modification de ${patchSummary(input)}`, 60);
     case "Glob":
       return truncate(`Recherche de fichiers ${str(input.pattern)}`, 60);
     case "Grep":
@@ -82,6 +97,7 @@ export function toolKind(toolName: string): StepKind {
     case "Edit":
     case "MultiEdit":
     case "NotebookEdit":
+    case "apply_patch":
       return "write";
     case "Read":
     case "Grep":
@@ -119,6 +135,11 @@ export function describePermission(toolName: string, input: Input = {}): { headl
       return { headline: `Veut accéder à ${host(str(input.url))}`, detail: str(input.url) };
     case "WebSearch":
       return { headline: "Veut faire une recherche web", detail: str(input.query) };
+    case "apply_patch":
+      return {
+        headline: `Veut modifier ${patchSummary(input)}`,
+        detail: patchFiles(str(input.command) || str(input.patch) || str(input.input)).join("\n") || truncate(str(input.command), 300),
+      };
     case "ExitPlanMode":
       return { headline: "Veut valider son plan", detail: truncate(str(input.plan), 300) };
     default: {

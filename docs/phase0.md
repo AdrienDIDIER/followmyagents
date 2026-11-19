@@ -84,3 +84,20 @@ Note : les outils de test (serveur Phase 0, bac à sable) utilisent désormais l
 ## Journaux bruts
 
 `phase0/logs/` (non versionné) : `a-allow.jsonl`, `a-deny.jsonl`, `b1…b3-*.jsonl`, `q1…q3-*.jsonl`, `q-mode-*.jsonl`, `e-*.jsonl`.
+
+## Phase 0 — Codex (CLI 0.169, extension VS Code `openai.chatgpt` 26.1111)
+
+Outillage : `phase0/codex-run.mjs` (`codex exec` avec hooks passés en `-c`), `phase0/codex-app-host.mjs` (**imitation de l'extension VS Code de Codex** : `codex app-server`, JSON-RPC), `phase0/codex-home-setup.mjs` (CODEX_HOME temporaire). **`~/.codex` n'a jamais été modifié.**
+
+| Point | Résultat |
+|---|---|
+| Format | `~/.codex/hooks.json` (ou `$CODEX_HOME`), même forme que la section `hooks` de Claude Code. Seul le type `command` existe (pas d'HTTP). |
+| Événements reçus en vrai | `SessionStart`, `UserPromptSubmit`, `PreToolUse` (`tool_name: "Bash"`, `tool_use_id`), `PostToolUse` (`tool_response` en texte), `PermissionRequest`, `Stop` (`last_assistant_message`), `SessionEnd`. `session_id` = identifiant de la conversation. |
+| Approbation | Codex **ignore les hooks non approuvés** en mode app-server (celui de VS Code). Approbation = `[hooks.state."<clé>"] trusted_hash = "<empreinte>"` dans `config.toml`, normalement via Réglages → Hooks → Review hooks ou `/hooks`. `--dangerously-bypass-hook-trust` n'existe que pour `codex exec`. |
+| `codex exec` | Ne demande jamais d'approbation : `PermissionRequest` n'y est pas déclenché. Le test des permissions passe donc par l'app-server. |
+| Permission : le hook autorise | La commande s'exécute, **le dialogue de l'hôte n'apparaît pas**. |
+| Permission : le hook refuse | La commande n'est pas exécutée. L'agent peut redemander une fois. |
+| **Hook maintenu** | **Différence avec Claude** : le dialogue de VS Code n'apparaît qu'**après** la réponse du hook (30 s de maintien → dialogue à +35 s). → délai court dans l'app (60 s) + `statusMessage` « En attente de FollowMyAgents… ». |
+| App fermée | Sans précaution, chaque hook est « failed » (code 1) et prend ~2,3 s (connexion refusée lente sous Windows). Avec `curl --connect-timeout 0.5 … ; exit 0` : hooks « completed », 0,8 s, aucun échec. Les événements non bloquants passent en `async` (aucune latence). |
+| Jump | L'extension accepte `vscode://openai.chatgpt/<route>` ; la conversation est `/local/<id>`. |
+| Questions | Les questions de Codex (`item/tool/requestUserInput`) ne passent par aucun hook : pas de réponse depuis le widget. |

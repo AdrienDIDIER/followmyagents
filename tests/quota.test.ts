@@ -36,7 +36,7 @@ describe("parseUsage", () => {
 
 describe("readClaudeToken", () => {
   it("Windows / Linux : lit ~/.claude/.credentials.json", async () => {
-    const readFile = vi.fn(() => creds());
+    const readFile = vi.fn((_p: string) => creds());
     expect(await readClaudeToken({ platform: "win32", home: "/h", readFile })).toEqual({ accessToken: "tok", expiresAt: 2_000_000_000_000, subscription: "pro" });
     expect(readFile.mock.calls[0][0]).toMatch(/\.claude[\\/]\.credentials\.json$/);
   });

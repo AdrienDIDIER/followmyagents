@@ -4,12 +4,25 @@
 //   node out/main/cli.js install   --settings <chemin>  | --user  [--question-mode pretooluse]
 //   node out/main/cli.js uninstall --settings <chemin>  | --user
 //   node out/main/cli.js todos on|off --settings <chemin> | --user   (outil de plan TodoWrite)
+//   … --codex : mêmes commandes status/install/uninstall pour Codex (~/.codex/hooks.json,
+//              ou --settings <chemin vers un hooks.json>)
 //
 // --user cible ~/.claude/settings.json : il doit être donné explicitement,
 // pour qu'aucun test ou script ne touche à la vraie config par accident.
 // Le token et le port sont ceux de l'app (config.json dans --config-dir ou
 // le dossier de config par défaut ; créé s'il n'existe pas).
-import { defaultSettingsPath, hooksState, installHooks, setTodoTools, todoToolsEnabled, uninstallHooks, type QuestionMode } from "./installer";
+import {
+  codexHooksState,
+  defaultCodexHooksPath,
+  defaultSettingsPath,
+  hooksState,
+  installCodexHooks,
+  installHooks,
+  setTodoTools,
+  todoToolsEnabled,
+  uninstallHooks,
+  type QuestionMode,
+} from "./installer";
 import { defaultConfigDir, loadConfig } from "./config";
 
 function arg(name: string): string | undefined {
@@ -23,7 +36,8 @@ function main(): number {
     console.log("Usage : cli.js <status|install|uninstall|todos on|off> (--settings <chemin> | --user) [--config-dir <dir>] [--question-mode permission|pretooluse]");
     return 2;
   }
-  const settings = process.argv.includes("--user") ? defaultSettingsPath() : arg("--settings");
+  const codex = process.argv.includes("--codex");
+  const settings = process.argv.includes("--user") ? (codex ? defaultCodexHooksPath() : defaultSettingsPath()) : arg("--settings");
   if (!settings) {
     console.error("Précisez --settings <chemin> (ou --user pour ~/.claude/settings.json).");
     return 2;
@@ -37,7 +51,7 @@ function main(): number {
   };
   try {
     if (cmd === "status") {
-      const st = hooksState(settings, target);
+      const st = codex ? codexHooksState(settings, target) : hooksState(settings, target);
       console.log(JSON.stringify({ settings, ...st, todoTools: todoToolsEnabled(settings) }, null, 2));
       return 0;
     }
@@ -53,8 +67,9 @@ function main(): number {
       return 0;
     }
     if (cmd === "install") {
-      const r = installHooks(settings, target);
-      console.log(`Hooks installés dans ${r.settingsPath}`);
+      const r = codex ? installCodexHooks(settings, target) : installHooks(settings, target);
+      console.log(`Hooks ${codex ? "Codex " : ""}installés dans ${r.settingsPath}`);
+      if (codex) console.log("À faire dans Codex : approuver les hooks (/hooks, ou Réglages → Hooks → Review hooks).");
       if (r.backupPath) console.log(`Sauvegarde : ${r.backupPath}`);
       return 0;
     }

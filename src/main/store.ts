@@ -36,6 +36,8 @@ export interface StoreOptions {
   now?: () => number;
   /** délai (s) avant de relâcher une demande sans réponse */
   pendingTimeoutSec?: () => number;
+  /** délai pour une demande Codex (voir Prefs.codexPendingTimeoutSec) */
+  codexPendingTimeoutSec?: () => number;
   /** retrait auto des sessions terminées (min, 0 = jamais) */
   autoRemoveDoneMin?: () => number;
   /** passage en "disconnected" après ce délai sans événement (ms) */
@@ -81,6 +83,7 @@ export class SessionStore {
     this.onEvent = opts.onEvent;
     this.opts = {
       pendingTimeoutSec: opts.pendingTimeoutSec ?? (() => 580),
+      codexPendingTimeoutSec: opts.codexPendingTimeoutSec ?? (() => 60),
       autoRemoveDoneMin: opts.autoRemoveDoneMin ?? (() => 30),
       disconnectAfterMs: opts.disconnectAfterMs ?? 10 * 60 * 1000,
       flashMs: opts.flashMs ?? 1500,
@@ -133,6 +136,7 @@ export class SessionStore {
     if (!s) {
       s = {
         id,
+        agent: ev._agent === "codex" ? "codex" : "claude",
         cwd: ev.cwd ?? "",
         transcriptPath: ev.transcript_path ?? "",
         title: "",
@@ -166,6 +170,7 @@ export class SessionStore {
     if (this.sessions.has(partial.id)) return;
     const t = this.now();
     this.sessions.set(partial.id, {
+      agent: "claude",
       titleSource: "transcript",
       subtitle: "",
       colorIndex: this.nextColor(),
@@ -484,13 +489,15 @@ export class SessionStore {
     const suggestions: PermissionSuggestion[] = Array.isArray(ev.permission_suggestions) ? ev.permission_suggestions : [];
     const { headline, detail } = describePermission(ev.tool_name ?? "", input);
     const t = this.now();
-    const alwaysIdx = pickAlwaysSuggestion(suggestions);
+    // Codex refuse updatedPermissions (« fail closed ») : pas de « toujours autoriser »
+    const alwaysIdx = s.agent === "codex" ? -1 : pickAlwaysSuggestion(suggestions);
+    const timeoutSec = s.agent === "codex" ? this.opts.codexPendingTimeoutSec() : this.opts.pendingTimeoutSec();
     const p: PendingPermission = {
       id: randomUUID(),
       kind: "permission",
       sessionId: s.id,
       createdAt: t,
-      expiresAt: t + this.opts.pendingTimeoutSec() * 1000,
+      expiresAt: t + timeoutSec * 1000,
       agentId: ev.agent_id,
       toolName: ev.tool_name ?? "",
       toolInput: input,

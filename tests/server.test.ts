@@ -191,3 +191,12 @@ describe("connexions", () => {
     }
   });
 });
+
+describe("Codex", () => {
+  it("?agent=codex marque la session comme Codex", async () => {
+    await post("/hook/event?agent=codex", { session_id: "cx", cwd: "/w", hook_event_name: "SessionStart", source: "startup" });
+    expect(store.getSession("cx")!.agent).toBe("codex");
+    await post("/hook/event", { session_id: "cl", cwd: "/w", hook_event_name: "SessionStart" });
+    expect(store.getSession("cl")!.agent).toBe("claude");
+  });
+});

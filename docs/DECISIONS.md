@@ -121,3 +121,18 @@ Format : **choix** · alternatives · raison.
 - **Vérifié** : Windows de bout en bout (`e2e/update-win.mjs` : 0.2.0 installée → détecte 0.2.1 → installe → relance en 14 s). macOS : logique couverte par des tests unitaires, jamais exécutée sur un Mac.
 - **Limite macOS** : l'app n'est signée qu'« ad hoc ». Chaque nouvelle version a donc une signature différente, et macOS peut **oublier les autorisations Accessibilité / Automatisation** après une mise à jour : il faut alors les réactiver (menu → Autorisations macOS…). Seule solution durable : signer avec un certificat stable (Apple Developer, ou certificat auto-signé importé dans la CI, non testé).
 - Le dépôt doit être **public** : l'API GitHub anonyme ne voit pas les Releases d'un dépôt privé (l'app répondrait « à jour »).
+
+## D23 — Quota Claude en direct (validé par l'utilisateur)
+- **Source** : `GET https://api.anthropic.com/api/oauth/usage` (service **interne non documenté**, celui de `/usage`), avec le jeton de Claude Code. Réponse utilisée : tableau `limits` (`kind`, `percent`, `severity`, `resets_at`), sinon `five_hour` / `seven_day`.
+- **Jeton** : lu seulement (Windows/Linux : `~/.claude/.credentials.json` ; macOS : trousseau « Claude Code-credentials », macOS demande l'accès). Jamais écrit ni renouvelé : un renouvellement par l'app pourrait invalider celui de Claude Code. Jeton expiré → « Session Claude Code expirée ».
+- **Rythme** : au démarrage, toutes les 3 min, à l'ouverture du panneau (si > 60 s).
+- **Affichage** : deux jauges sous l'en-tête (Session, Semaine), neutres, orange en « warning », rouge en « critical ». Remise à zéro affichée. Désactivable (menu → Afficher le quota Claude).
+- **Risque accepté** : Anthropic peut changer ce service ; l'app affiche alors « Quota indisponible » sans autre effet.
+
+## D24 — Agents Codex (validé par l'utilisateur)
+- **Installation** : menu de l'icône → « Installer les hooks Codex… » (ou `npm run hooks -- install --codex --user`) → `~/.codex/hooks.json`, avec fusion, sauvegarde et désinstallation exacte (même code que Claude). Puis **approbation dans Codex** (Réglages → Hooks → Review hooks, ou `/hooks`) : l'app ne contourne pas ce contrôle de sécurité.
+- **Hooks** : `PermissionRequest` synchrone (statusMessage « En attente de FollowMyAgents… ») ; les autres en `async` ; `curl --connect-timeout 0.5 … ; exit 0` ; `?agent=codex` dans l'URL pour marquer la session.
+- **Délai** : une demande Codex reste 60 s dans le widget (réglable : `prefs.codexPendingTimeoutSec`), puis repasse dans le dialogue de VS Code, qui n'apparaît qu'à ce moment (phase0 Codex).
+- **Pas de « Toujours autoriser »** pour Codex (`updatedPermissions` refusé par Codex), ni de réponse aux questions (aucun hook).
+- **Jump** : `vscode://openai.chatgpt/local/<id>` après mise au premier plan de la bonne fenêtre.
+- **Vérifié en conditions réelles** (`e2e/live-codex.mjs`, CODEX_HOME temporaire) : autoriser, refuser, retour vers VS Code après le délai, badge et activité.

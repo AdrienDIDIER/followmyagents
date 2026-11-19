@@ -76,6 +76,7 @@ export function AgentRow({
         <Mascot state={bg.inBackground ? "working" : s.state} colorIndex={s.colorIndex} size={20} />
         <div className="txt">
           <div className="t">
+            {s.agent === "codex" && <span className="agent-tag">Codex</span>}
             {s.title}
             {bg.subs.length > 0 && (
               <span className="subagents" title={bg.subs.map((a) => agentLabel(a.type)).join(", ")}>

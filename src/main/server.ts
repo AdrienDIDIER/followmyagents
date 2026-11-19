@@ -55,7 +55,9 @@ export function createHookServer(opts: HookServerOptions): HookServer {
   let port = opts.port ?? DEFAULT_PORT;
 
   const server = http.createServer((req, res) => {
-    const url = (req.url ?? "").split("?")[0];
+    const [url, query = ""] = (req.url ?? "").split("?");
+    // ?agent=codex : hook installé dans Codex (sinon Claude Code)
+    const agent = new URLSearchParams(query).get("agent") === "codex" ? "codex" : "claude";
 
     if (req.method === "GET" && url === "/health") return send(res, 200, { app: "FollowMyAgents", ok: true });
     // Un navigateur envoie toujours Origin : on refuse toute requête venant d'une page web.
@@ -88,6 +90,7 @@ export function createHookServer(opts: HookServerOptions): HookServer {
       try {
         ev = JSON.parse(Buffer.concat(chunks).toString("utf8"));
         if (!ev || typeof ev !== "object") throw new Error("not an object");
+        ev._agent = agent;
       } catch {
         return send(res, 400);
       }

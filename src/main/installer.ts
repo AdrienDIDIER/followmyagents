@@ -164,7 +164,9 @@ export interface InstallResult {
   created: boolean;
 }
 
-export function installHooks(settingsPath: string, target: HookTarget, now = new Date()): InstallResult {
+type Builder = (t: HookTarget) => HooksMap;
+
+export function installHooks(settingsPath: string, target: HookTarget, now = new Date(), build: Builder = buildHookConfig): InstallResult {
   const loaded = load(settingsPath);
   const data = loaded.data;
   if (data.hooks !== undefined && (typeof data.hooks !== "object" || data.hooks === null || Array.isArray(data.hooks))) {
@@ -172,7 +174,7 @@ export function installHooks(settingsPath: string, target: HookTarget, now = new
   }
   const hooks: HooksMap = (data.hooks as HooksMap) ?? {};
   stripOurs(hooks);
-  const ours = buildHookConfig(target);
+  const ours = build(target);
   for (const [ev, groups] of Object.entries(ours)) {
     hooks[ev] = [...(Array.isArray(hooks[ev]) ? hooks[ev] : []), ...groups];
   }
@@ -209,14 +211,14 @@ export interface HooksState {
   error?: string;
 }
 
-export function hooksState(settingsPath: string, target: HookTarget): HooksState {
+export function hooksState(settingsPath: string, target: HookTarget, build: Builder = buildHookConfig): HooksState {
   try {
     const { data } = load(settingsPath);
     const hooks = (data.hooks ?? {}) as HooksMap;
     const all = Object.values(hooks).flatMap((g) => (Array.isArray(g) ? g : [])).flatMap((g) => g?.hooks ?? []);
     const ours = all.filter(isOurHook);
     if (ours.length === 0) return { installed: false, upToDate: false };
-    const expected = buildHookConfig(target);
+    const expected = build(target);
     const expectedCount = Object.values(expected).reduce((n, g) => n + g.reduce((m, x) => m + x.hooks.length, 0), 0);
     const tokenOk = ours.every((h) => {
       const s = JSON.stringify(h);
@@ -262,4 +264,56 @@ export function setTodoTools(settingsPath: string, enabled: boolean, now = new D
   const backupPath = loaded.exists ? backup(settingsPath, loaded.raw, now) : undefined;
   writeAtomic(settingsPath, data, loaded.indent);
   return { changed: true, backupPath };
+}
+
+// ---------- Codex (D24) ----------
+// Codex lit ~/.codex/hooks.json (ou $CODEX_HOME/hooks.json), au même format que la
+// section "hooks" de Claude Code. Seuls les hooks « command » existent : on relaie
+// avec curl. Différences avec Claude (phase0, section Codex) :
+//  - le dialogue de VS Code n'apparaît qu'APRÈS la réponse du hook → statusMessage
+//    explicite et délai court côté app (Prefs.codexPendingTimeoutSec) ;
+//  - --connect-timeout 0.5 + « ; exit 0 » : app fermée = hook réussi, rapide, silencieux ;
+//  - événements non bloquants en async (aucune latence ajoutée).
+// Codex exige que l'utilisateur APPROUVE les hooks une fois (/hooks, ou Réglages → Hooks).
+
+export function codexHome(): string {
+  return process.env.CODEX_HOME || path.join(os.homedir(), ".codex");
+}
+
+export function defaultCodexHooksPath(): string {
+  return path.join(codexHome(), "hooks.json");
+}
+
+export const CODEX_ASYNC_EVENTS = ["SessionStart", "UserPromptSubmit", "PreToolUse", "PostToolUse", "Stop", "SubagentStart", "SubagentStop"] as const;
+
+export function buildCodexHookConfig(t: HookTarget): HooksMap {
+  const curl = (t.platform ?? process.platform) === "win32" ? "curl.exe" : "curl";
+  const relay = (route: string) =>
+    `${curl} -s --connect-timeout 0.5 -m 600 -X POST -H "Content-Type: application/json" -H "${TOKEN_HEADER}: ${t.token}" --data-binary "@-" "http://127.0.0.1:${t.port}${route}?agent=codex"; exit 0`;
+  const map: HooksMap = {
+    PermissionRequest: [
+      { hooks: [{ type: "command", command: relay("/hook/permission"), timeout: 600, statusMessage: "En attente de FollowMyAgents…" }] },
+    ],
+  };
+  for (const ev of CODEX_ASYNC_EVENTS) map[ev] = [{ hooks: [{ type: "command", command: relay("/hook/event"), timeout: 10, async: true }] }];
+  map.SessionEnd = [{ hooks: [{ type: "command", command: relay("/hook/event"), timeout: 3, async: true }] }];
+  return map;
+}
+
+export function installCodexHooks(hooksPath: string, target: HookTarget, now = new Date()): InstallResult {
+  return installHooks(hooksPath, target, now, buildCodexHookConfig);
+}
+
+export function codexHooksState(hooksPath: string, target: HookTarget): HooksState {
+  return hooksState(hooksPath, target, buildCodexHookConfig);
+}
+
+/** Codex est-il présent sur cette machine (dossier de config ou extension VS Code) ? */
+export function codexDetected(): boolean {
+  if (fs.existsSync(codexHome())) return true;
+  try {
+    return fs.readdirSync(path.join(os.homedir(), ".vscode", "extensions")).some((d) => d.startsWith("openai.chatgpt-"));
+  } catch {
+    return false;
+  }
 }

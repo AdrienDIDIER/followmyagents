@@ -6,10 +6,21 @@ import type { AppSnapshot, PendingAnswer, Prefs } from "@shared/types";
 import { loadConfig, saveConfig, type AppConfig } from "./config";
 import { createHookServer, type HookServer } from "./server";
 import { SessionStore, type HookInput } from "./store";
-import { defaultSettingsPath, hooksState, installHooks, setTodoTools, todoToolsEnabled, uninstallHooks } from "./installer";
+import {
+  codexDetected,
+  codexHooksState,
+  defaultCodexHooksPath,
+  defaultSettingsPath,
+  hooksState,
+  installCodexHooks,
+  installHooks,
+  setTodoTools,
+  todoToolsEnabled,
+  uninstallHooks,
+} from "./installer";
 import { Panel, rendererPaths } from "./panel";
 import { trayImage } from "./tray-icon";
-import { jumpToSession, listVsCodeWindowTitles } from "./vscode";
+import { codexSessionUri, jumpToSession, listVsCodeWindowTitles } from "./vscode";
 import { readIdeWindows } from "./ide";
 import { Updater } from "./updater";
 import { QuotaWatcher } from "./quota";
@@ -20,6 +31,7 @@ import { folderTitle } from "./store";
 // ---------- isolation (tests / captures) ----------
 if (process.env.FMA_USER_DATA) app.setPath("userData", process.env.FMA_USER_DATA);
 const SETTINGS_PATH = process.env.FMA_CLAUDE_SETTINGS || defaultSettingsPath();
+const CODEX_HOOKS_PATH = process.env.FMA_CODEX_HOOKS || defaultCodexHooksPath();
 const SCAN_TRANSCRIPTS = process.env.FMA_NO_TRANSCRIPTS !== "1";
 const NO_GLASS = process.env.FMA_NO_GLASS === "1";
 const SHORTCUT = "CommandOrControl+Alt+A";
@@ -125,6 +137,7 @@ function trayMenu(): Menu {
     { label: hooksLabel, enabled: false },
     { label: st.installed ? "Réinstaller les hooks…" : "Installer les hooks…", click: () => void doInstall() },
     { label: "Désinstaller les hooks…", enabled: st.installed, click: () => void doUninstall() },
+    ...codexMenuItems(),
     {
       label: "Plans des agents (active TodoWrite)",
       type: "checkbox",
@@ -190,6 +203,79 @@ async function doInstall() {
     dialog.showErrorBox("FollowMyAgents", (e as Error).message);
   }
   cachedHooksState(true);
+  pushSnapshot();
+}
+
+// ---------- Codex (D24) ----------
+function codexMenuItems(): Electron.MenuItemConstructorOptions[] {
+  const st = codexHooksState(CODEX_HOOKS_PATH, { port: cfg.port, token: cfg.token });
+  if (!st.installed && !codexDetected()) return [];
+  const label = st.error
+    ? `Codex : ${st.error}`
+    : st.installed && st.upToDate
+      ? "Codex : hooks installés ✓"
+      : st.installed
+        ? "Codex : hooks à mettre à jour"
+        : "Codex : hooks non installés";
+  return [
+    { type: "separator" },
+    { label, enabled: false },
+    { label: st.installed ? "Réinstaller les hooks Codex…" : "Installer les hooks Codex…", click: () => void doInstallCodex() },
+    { label: "Désinstaller les hooks Codex…", enabled: st.installed, click: () => void doUninstallCodex() },
+  ];
+}
+
+async function doInstallCodex() {
+  const r = await dialog.showMessageBox({
+    type: "question",
+    buttons: ["Installer", "Annuler"],
+    defaultId: 0,
+    cancelId: 1,
+    title: "FollowMyAgents",
+    message: "Installer les hooks FollowMyAgents dans Codex ?",
+    detail: [
+      `Fichier modifié : ${CODEX_HOOKS_PATH} (sauvegarde horodatée à côté ; vos autres hooks ne sont pas touchés).`,
+      "Codex demande ensuite d'APPROUVER ces hooks une fois : dans l'app ou l'extension Codex, Réglages → Hooks → Review hooks (ou /hooks dans le terminal).",
+      "Une demande Codex reste dans le widget 60 s au plus, puis repasse dans le dialogue de VS Code.",
+    ].join("\n\n"),
+  });
+  if (r.response !== 0) return;
+  try {
+    const res = installCodexHooks(CODEX_HOOKS_PATH, { port: cfg.port, token: cfg.token });
+    void dialog.showMessageBox({
+      type: "info",
+      title: "FollowMyAgents",
+      message: "Hooks Codex installés. Il reste à les approuver dans Codex.",
+      detail: `${res.settingsPath}${res.backupPath ? `\nSauvegarde : ${res.backupPath}` : ""}\n\nCodex → Réglages → Hooks → Review hooks (ou /hooks), puis ouvrez une nouvelle conversation.`,
+    });
+  } catch (e) {
+    dialog.showErrorBox("FollowMyAgents", (e as Error).message);
+  }
+  pushSnapshot();
+}
+
+async function doUninstallCodex() {
+  const r = await dialog.showMessageBox({
+    type: "question",
+    buttons: ["Désinstaller", "Annuler"],
+    defaultId: 0,
+    cancelId: 1,
+    title: "FollowMyAgents",
+    message: "Retirer les hooks FollowMyAgents de Codex ?",
+    detail: `Fichier modifié : ${CODEX_HOOKS_PATH}\nSeuls les hooks FollowMyAgents sont retirés.`,
+  });
+  if (r.response !== 0) return;
+  try {
+    const res = uninstallHooks(CODEX_HOOKS_PATH);
+    void dialog.showMessageBox({
+      type: "info",
+      title: "FollowMyAgents",
+      message: res.removed ? `${res.removed} hooks retirés de Codex.` : "Aucun hook FollowMyAgents dans Codex.",
+      detail: res.backupPath ? `Sauvegarde : ${res.backupPath}` : undefined,
+    });
+  } catch (e) {
+    dialog.showErrorBox("FollowMyAgents", (e as Error).message);
+  }
   pushSnapshot();
 }
 
@@ -405,8 +491,10 @@ async function start() {
   });
   store = new SessionStore({
     pendingTimeoutSec: () => cfg.prefs.pendingTimeoutSec,
+    codexPendingTimeoutSec: () => cfg.prefs.codexPendingTimeoutSec,
     autoRemoveDoneMin: () => cfg.prefs.autoRemoveDoneMin,
     onEvent: (ev: HookInput, s) => {
+      if (process.env.FMA_EVENT_LOG) fs.appendFileSync(process.env.FMA_EVENT_LOG, JSON.stringify({ agent: ev._agent, ev: ev.hook_event_name, tool: ev.tool_name, id: ev.tool_use_id }) + "\n");
       if (s.titleSource !== "session" && ["UserPromptSubmit", "Stop", "SessionStart"].includes(ev.hook_event_name ?? "")) {
         refreshTitle(s.id, s.transcriptPath, ev.hook_event_name === "Stop" ? 300 : 2500);
       }
@@ -597,6 +685,7 @@ async function jump(sessionId: string) {
       log,
       onAccessibilityDenied: askAccessibility,
       onDiag: (d) => Object.assign(diag, d),
+      uri: s.agent === "codex" ? codexSessionUri(s.id) : undefined,
     });
     diag.outcome = outcome;
     diag.vscodeWindows = await listVsCodeWindowTitles().catch((e) => String(e));

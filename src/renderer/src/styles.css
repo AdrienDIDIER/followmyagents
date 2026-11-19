@@ -166,6 +166,20 @@ input:focus-visible,
   color: var(--text-1);
 }
 
+/* badge de l'outil d'agent (Codex) */
+.agent-tag {
+  display: inline-block;
+  font-size: 9.5px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--text-2);
+  background: var(--fill-2);
+  border-radius: 4px;
+  padding: 1px 4px;
+  margin-right: 5px;
+  vertical-align: 1px;
+}
+
 /* ---------- quota Claude ---------- */
 .quota {
   display: flex;

@@ -25,6 +25,7 @@ export const DEFAULT_PREFS: Prefs = {
   notifications: true,
   pendingTimeoutSec: 580,
   autoRemoveDoneMin: 30,
+  codexPendingTimeoutSec: 60,
   autoUpdateCheck: true,
   showQuota: true,
 };

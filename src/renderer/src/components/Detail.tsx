@@ -17,7 +17,10 @@ export function Detail({ session: s, now, onJump }: { session: Session; now: num
       <div className="d-hero">
         <Mascot state={bg.inBackground ? "working" : s.state} colorIndex={s.colorIndex} size={44} />
         <div className="txt">
-          <div className="t">{s.title}</div>
+          <div className="t">
+            {s.agent === "codex" && <span className="agent-tag">Codex</span>}
+            {s.title}
+          </div>
           <div className={`s ${flash ? "" : sub.cls}`}>{flash ? flash.text : sub.text}</div>
           <div className="d-prog">
             {p ? (

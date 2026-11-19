@@ -478,3 +478,43 @@ describe("questions", () => {
     await expect(result).resolves.toBeNull();
   });
 });
+
+describe("Codex", () => {
+  const codex = (name: string, extra: Record<string, unknown> = {}, sid = "cx") =>
+    store.ingest({ ...base(sid, extra), hook_event_name: name, _agent: "codex" });
+
+  it("marque la session comme Codex", () => {
+    codex("SessionStart", { source: "startup", model: "gpt-5.6-luna" });
+    expect(store.getSession("cx")!.agent).toBe("codex");
+    ev("SessionStart", {}, "cl");
+    expect(store.getSession("cl")!.agent).toBe("claude");
+  });
+
+  it("apply_patch : sous-titre et demande lisibles", () => {
+    const patch = "*** Begin Patch\n*** Update File: src/app.ts\n@@\n-a\n+b\n*** Add File: src/new.ts\n+x\n*** End Patch";
+    codex("PreToolUse", { tool_name: "apply_patch", tool_input: { command: patch }, tool_use_id: "p1" });
+    expect(store.getSession("cx")!.subtitle).toBe("Modification de app.ts et 1 autre");
+    const { pending } = store.openPermission({ ...base("cx"), hook_event_name: "PermissionRequest", _agent: "codex", tool_name: "apply_patch", tool_input: { command: patch } })!;
+    if (pending.kind !== "permission") throw new Error();
+    expect(pending.headline).toBe("Veut modifier app.ts et 1 autre");
+    expect(pending.detail).toBe("src/app.ts\nsrc/new.ts");
+  });
+
+  it("demande Codex : délai court (60 s) et jamais de « toujours autoriser »", async () => {
+    codex("SessionStart", {});
+    const { pending, result } = store.openPermission({
+      ...base("cx"),
+      hook_event_name: "PermissionRequest",
+      _agent: "codex",
+      tool_name: "Bash",
+      tool_input: { command: "npm test" },
+      permission_suggestions: [{ type: "addRules", rules: [{ toolName: "Bash", ruleContent: "npm test" }], behavior: "allow" }],
+    })!;
+    if (pending.kind !== "permission") throw new Error();
+    expect(pending.alwaysLabel).toBeUndefined();
+    expect(pending.expiresAt - pending.createdAt).toBe(60_000);
+    t += 61_000;
+    store.tick();
+    await expect(result).resolves.toBeNull(); // rend la main au dialogue de VS Code
+  });
+});

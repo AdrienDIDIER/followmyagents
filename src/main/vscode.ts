@@ -12,6 +12,11 @@ export function sessionUri(sessionId: string): string {
   return `vscode://anthropic.claude-code/open?session=${encodeURIComponent(sessionId)}`;
 }
 
+/** Conversation Codex dans l'extension VS Code d'OpenAI (route /local/:conversationId). */
+export function codexSessionUri(threadId: string): string {
+  return `vscode://openai.chatgpt/local/${encodeURIComponent(threadId)}`;
+}
+
 export function folderName(cwd: string): string {
   const parts = cwd.split(/[\\/]+/).filter(Boolean);
   return parts[parts.length - 1] ?? "";
@@ -80,6 +85,8 @@ export interface JumpDeps {
   delay?: (ms: number) => Promise<void>;
   /** fenêtres VS Code déclarées dans ~/.claude/ide/*.lock (lues si absent) */
   ideWindows?: IdeWindow[];
+  /** URI à ouvrir (par défaut : session Claude Code) */
+  uri?: string;
 }
 
 export type FocusOutcome =
@@ -165,7 +172,7 @@ export async function jumpToSession(sessionId: string, cwd: string, deps: JumpDe
   // (plus long si VS Code doit ouvrir le dossier)
   const ms = outcome === "opened-folder" ? 1200 : platform === "darwin" ? 450 : 200;
   await wait(ms);
-  await deps.openExternal(sessionUri(sessionId));
+  await deps.openExternal(deps.uri ?? sessionUri(sessionId));
   return outcome;
 }
 

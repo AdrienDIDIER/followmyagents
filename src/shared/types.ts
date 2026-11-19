@@ -71,8 +71,12 @@ export interface BackgroundTask {
   startedAt: number;
 }
 
+/** Outil d'agent à l'origine de la session. */
+export type AgentKind = "claude" | "codex";
+
 export interface Session {
   id: string;
+  agent: AgentKind;
   cwd: string;
   transcriptPath: string;
   title: string;
@@ -174,6 +178,9 @@ export interface Prefs {
   pendingTimeoutSec: number;
   /** retrait automatique des sessions terminées (min, 0 = jamais) */
   autoRemoveDoneMin: number;
+  /** Codex : délai avant de rendre la main au dialogue de VS Code (s). Chez Codex, ce dialogue
+   *  n'apparaît qu'APRÈS la réponse du hook (phase0 Codex), d'où un délai court. */
+  codexPendingTimeoutSec: number;
   /** vérifier les mises à jour (au démarrage puis toutes les 6 h) */
   autoUpdateCheck: boolean;
   /** afficher le quota Claude (lit le jeton de Claude Code) */

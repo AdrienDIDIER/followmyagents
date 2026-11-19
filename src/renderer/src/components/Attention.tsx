@@ -14,7 +14,10 @@ function Who({ session, subtitle, now, waitingSince }: { session: Session; subti
     <div className="who">
       <Mascot state={session.state === "asks_question" ? "asks_question" : "needs_permission"} colorIndex={session.colorIndex} size={26} />
       <div className="txt">
-        <div className="t">{session.title}</div>
+        <div className="t">
+          {session.agent === "codex" && <span className="agent-tag">Codex</span>}
+          {session.title}
+        </div>
         <div className="s">{subtitle}</div>
       </div>
       {now - waitingSince >= 30_000 && <div className="since">{since(waitingSince, now)}</div>}

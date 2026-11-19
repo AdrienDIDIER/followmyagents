@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { cleanEnv, folderName, isAccessibilityError, jumpToSession, permissionErrorKind, sessionUri, type RunResult } from "../src/main/vscode";
+import { cleanEnv, codexSessionUri, folderName, isAccessibilityError, jumpToSession, permissionErrorKind, sessionUri, type RunResult } from "../src/main/vscode";
 
 const ok = (stdout: string): RunResult => ({ code: 0, stdout, stderr: "" });
 
@@ -130,5 +130,13 @@ describe("utilitaires", () => {
   it("isAccessibilityError", () => {
     expect(isAccessibilityError({ code: 1, stdout: "", stderr: "(-25211)" })).toBe(true);
     expect(isAccessibilityError({ code: 1, stdout: "", stderr: "syntax error" })).toBe(false);
+  });
+});
+
+describe("jump Codex", () => {
+  it("ouvre la conversation Codex dans l'extension OpenAI", async () => {
+    const { deps, calls } = setup("win32", ok("FOCUSED x - p - Visual Studio Code"));
+    await jumpToSession("01a1f59b-3713", "C:\w\p", { ...deps, uri: codexSessionUri("01a1f59b-3713") });
+    expect(calls.open).toEqual(["vscode://openai.chatgpt/local/01a1f59b-3713"]);
   });
 });
