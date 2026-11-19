@@ -102,6 +102,14 @@ describe("logique pure", () => {
 });
 
 describe("vérification", () => {
+  it("régression 0.2.1 : options undefined → API GitHub par défaut", async () => {
+    const f = fakeFetch(release());
+    const { u } = make("win32", f, { apiBase: undefined, tmpDir: undefined, platform: "win32" });
+    await u.check();
+    expect((f as unknown as { mock: { calls: string[][] } }).mock.calls[0][0]).toBe("https://api.github.com/repos/o/r/releases/latest");
+    expect(u.state.state).toBe("available");
+  });
+
   it("version plus récente → available", async () => {
     const { u } = make("win32", fakeFetch(release()));
     expect(await u.check()).toMatchObject({ state: "available", version: "0.3.0" });

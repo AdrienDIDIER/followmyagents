@@ -370,7 +370,7 @@ async function start() {
     currentVersion: app.getVersion(),
     packaged: app.isPackaged,
     exePath: app.getPath("exe"),
-    apiBase: process.env.FMA_UPDATE_API || undefined,
+    ...(process.env.FMA_UPDATE_API ? { apiBase: process.env.FMA_UPDATE_API } : {}),
     quit: () => app.quit(),
     onChange: () => pushSnapshot(),
     log,

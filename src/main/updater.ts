@@ -150,7 +150,9 @@ export class Updater {
           p.on("error", reject);
           p.on("exit", (code) => (code === 0 ? resolve() : reject(new Error(`${path.basename(file)} : code ${code}`))));
         }),
-      ...deps,
+      // une option passée explicitement à undefined ne doit pas écraser la valeur par défaut
+      // (bug 0.2.0 / 0.2.1 : apiBase undefined → « Failed to parse URL from undefined/repos/… »)
+      ...(Object.fromEntries(Object.entries(deps).filter(([, v]) => v !== undefined)) as UpdaterDeps),
     };
   }
 
