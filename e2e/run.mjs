@@ -313,6 +313,34 @@ try {
   await shot("08-detail");
   await page.getByRole("button", { name: "Agents", exact: true }).click();
 
+  // ---- session sans plan : activité récente ----
+  await check("sans plan (TodoWrite désactivé) : la vue détail montre l'activité récente cochée", async () => {
+    const sid = "activite";
+    await ev(sid, "SessionStart", { session_title: "Refacto auth" });
+    await ev(sid, "UserPromptSubmit", { prompt: "refacto" });
+    const tools = [
+      ["Read", { file_path: "C:\\work\\activite\\src\\auth.ts" }],
+      ["Grep", { pattern: "createSession" }],
+      ["Edit", { file_path: "C:\\work\\activite\\src\\auth.ts" }],
+      ["Bash", { command: "npm test", description: "Lance les tests" }],
+    ];
+    for (const [i, [tool, input]] of tools.entries()) {
+      await ev(sid, "PreToolUse", { tool_name: tool, tool_input: input, tool_use_id: `t${i}` });
+      if (i < tools.length - 1) await ev(sid, "PostToolUse", { tool_name: tool, tool_input: input, tool_use_id: `t${i}`, tool_response: {} });
+    }
+    await page.locator('[data-testid="agent-row"]', { hasText: "Refacto auth" }).click();
+    await page.waitForSelector('[data-testid="activity"]');
+    await sleep(300);
+    const items = page.locator('[data-testid="activity"] .step');
+    assert.equal(await items.count(), 4);
+    assert.equal(await page.locator('[data-testid="activity"] .step.completed').count(), 3);
+    assert.equal(await page.locator('[data-testid="activity"] .step.in_progress').count(), 1);
+    assert.match(await page.locator('[data-testid="activity"]').innerText(), /Lance les tests/);
+    await shot("14-activite-recente");
+    await page.getByRole("button", { name: "Agents", exact: true }).click();
+    await app.evaluate(() => globalThis.__fma.store.dismiss("activite"));
+  });
+
   // ---- sous-agents et tâches en arrière-plan (format réel, voir tests/fixtures) ----
   await check("arrière-plan : la ligne indique le travail en fond, la vue détail liste sous-agents et tâches", async () => {
     await ev("polish", "PostToolUse", {

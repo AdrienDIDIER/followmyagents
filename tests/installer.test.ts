@@ -9,6 +9,8 @@ import {
   hooksState,
   installHooks,
   isOurHook,
+  setTodoTools,
+  todoToolsEnabled,
   uninstallHooks,
 } from "../src/main/installer";
 
@@ -184,5 +186,33 @@ describe("installHooks / uninstallHooks", () => {
     expect(hooksState(file, target)).toMatchObject({ installed: true, upToDate: true });
     expect(hooksState(file, { ...target, token: "c".repeat(64) })).toMatchObject({ installed: true, upToDate: false });
     expect(hooksState(file, { ...target, port: 1234 })).toMatchObject({ installed: true, upToDate: false });
+  });
+});
+
+describe("option Plans des agents (TodoWrite)", () => {
+  it("active puis désactive CLAUDE_CODE_ENABLE_TODO_TOOLS sans toucher au reste, avec sauvegarde", () => {
+    write({ model: "x", env: { FOO: "bar" } });
+    expect(todoToolsEnabled(file)).toBe(false);
+    const r = setTodoTools(file, true);
+    expect(r.changed).toBe(true);
+    expect(r.backupPath).toBeDefined();
+    expect(read()).toEqual({ model: "x", env: { FOO: "bar", CLAUDE_CODE_ENABLE_TODO_TOOLS: "1" } });
+    expect(todoToolsEnabled(file)).toBe(true);
+    expect(setTodoTools(file, true).changed).toBe(false);
+    setTodoTools(file, false);
+    expect(read()).toEqual({ model: "x", env: { FOO: "bar" } });
+  });
+  it("retire la clé env si elle devient vide ; crée le fichier si besoin", () => {
+    setTodoTools(file, true);
+    expect(read()).toEqual({ env: { CLAUDE_CODE_ENABLE_TODO_TOOLS: "1" } });
+    setTodoTools(file, false);
+    expect(read()).toEqual({});
+  });
+  it("la désinstallation des hooks ne touche pas à cette option", () => {
+    write({});
+    installHooks(file, target);
+    setTodoTools(file, true);
+    uninstallHooks(file);
+    expect(read()).toEqual({ env: { CLAUDE_CODE_ENABLE_TODO_TOOLS: "1" } });
   });
 });

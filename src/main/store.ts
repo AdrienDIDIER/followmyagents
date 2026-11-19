@@ -14,6 +14,8 @@ import type {
   Subagent,
 } from "@shared/types";
 import {
+  QUIET_TOOLS,
+  toolKind,
   applyTaskTool,
   describePermission,
   describeSuggestion,
@@ -139,6 +141,7 @@ export class SessionStore {
         colorIndex: this.nextColor(),
         state: "idle",
         steps: [],
+        activity: [],
         subagents: [],
         background: [],
         startedAt: t,
@@ -168,6 +171,7 @@ export class SessionStore {
       colorIndex: this.nextColor(),
       state: "idle",
       steps: [],
+      activity: [],
       subagents: [],
       background: [],
       startedAt: t,
@@ -294,6 +298,15 @@ export class SessionStore {
       case "PreToolUse": {
         const desc = describeTool(tool, input);
         if (sub) sub.action = desc;
+        if (!QUIET_TOOLS.has(tool)) {
+          const id = typeof ev.tool_use_id === "string" ? ev.tool_use_id : `${tool}-${this.now()}`;
+          if (!s.activity.some((a) => a.id === id)) {
+            s.activity = [
+              ...s.activity,
+              { id, label: desc, kind: toolKind(tool), status: "running" as const, agent: sub?.type, at: this.now() },
+            ].slice(-10);
+          }
+        }
         if (!this.hasPending(s.id)) {
           if (sub && parentIdle) {
             // le parent reste « en pause », le travail est en arrière-plan
@@ -311,6 +324,9 @@ export class SessionStore {
       case "PostToolUseFailure": {
         this.cancelMatchingPendings(s.id, tool, input);
         const failed = name === "PostToolUseFailure";
+        if (typeof ev.tool_use_id === "string") {
+          s.activity = s.activity.map((a) => (a.id === ev.tool_use_id ? { ...a, status: failed ? "failed" : "done" } : a));
+        }
         const resp = (ev.tool_response && typeof ev.tool_response === "object" ? ev.tool_response : {}) as Record<string, unknown>;
         if ((tool === "Bash" || tool === "PowerShell") && typeof input.command === "string") {
           const bgId = typeof resp.backgroundTaskId === "string" ? resp.backgroundTaskId : undefined;
@@ -409,6 +425,7 @@ export class SessionStore {
         s.waitingSince = undefined;
         // les sous-agents et commandes en arrière-plan continuent : on ne les efface pas
         this.syncBackground(s, ev.background_tasks);
+        s.activity = s.activity.map((a) => (a.status === "running" ? { ...a, status: "done" } : a));
         for (const a of s.subagents) {
           // un sous-agent au premier plan s'arrête avec le tour
           if (a.status === "running" && !a.background && !s.background.some((b) => b.id === a.id)) {
@@ -435,6 +452,7 @@ export class SessionStore {
         s.subtitle = s.lastMessage ? messagePreview(s.lastMessage) || "Session terminée" : "Session terminée";
         for (const a of s.subagents) if (a.status === "running") (a.status = "done"), (a.endedAt = this.now());
         s.background = [];
+        s.activity = s.activity.map((a) => (a.status === "running" ? { ...a, status: "done" } : a));
         if (s.lastCommand) s.lastCommand.running = false;
         break;
       default:

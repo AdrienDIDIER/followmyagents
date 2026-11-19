@@ -61,6 +61,10 @@
   ],
   [
     "✅",
+    "sans plan (TodoWrite désactivé) : la vue détail montre l'activité récente cochée"
+  ],
+  [
+    "✅",
     "arrière-plan : la ligne indique le travail en fond, la vue détail liste sous-agents et tâches"
   ],
   [

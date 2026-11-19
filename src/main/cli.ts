@@ -3,12 +3,13 @@
 //   node out/main/cli.js status    --settings <chemin>  | --user
 //   node out/main/cli.js install   --settings <chemin>  | --user  [--question-mode pretooluse]
 //   node out/main/cli.js uninstall --settings <chemin>  | --user
+//   node out/main/cli.js todos on|off --settings <chemin> | --user   (outil de plan TodoWrite)
 //
 // --user cible ~/.claude/settings.json : il doit être donné explicitement,
 // pour qu'aucun test ou script ne touche à la vraie config par accident.
 // Le token et le port sont ceux de l'app (config.json dans --config-dir ou
 // le dossier de config par défaut ; créé s'il n'existe pas).
-import { defaultSettingsPath, hooksState, installHooks, uninstallHooks, type QuestionMode } from "./installer";
+import { defaultSettingsPath, hooksState, installHooks, setTodoTools, todoToolsEnabled, uninstallHooks, type QuestionMode } from "./installer";
 import { defaultConfigDir, loadConfig } from "./config";
 
 function arg(name: string): string | undefined {
@@ -18,8 +19,8 @@ function arg(name: string): string | undefined {
 
 function main(): number {
   const cmd = process.argv[2];
-  if (!cmd || !["status", "install", "uninstall"].includes(cmd)) {
-    console.log("Usage : cli.js <status|install|uninstall> (--settings <chemin> | --user) [--config-dir <dir>] [--question-mode permission|pretooluse]");
+  if (!cmd || !["status", "install", "uninstall", "todos"].includes(cmd)) {
+    console.log("Usage : cli.js <status|install|uninstall|todos on|off> (--settings <chemin> | --user) [--config-dir <dir>] [--question-mode permission|pretooluse]");
     return 2;
   }
   const settings = process.argv.includes("--user") ? defaultSettingsPath() : arg("--settings");
@@ -37,7 +38,18 @@ function main(): number {
   try {
     if (cmd === "status") {
       const st = hooksState(settings, target);
-      console.log(JSON.stringify({ settings, ...st }, null, 2));
+      console.log(JSON.stringify({ settings, ...st, todoTools: todoToolsEnabled(settings) }, null, 2));
+      return 0;
+    }
+    if (cmd === "todos") {
+      const on = process.argv[3] === "on";
+      if (!["on", "off"].includes(process.argv[3] ?? "")) {
+        console.error("Usage : cli.js todos on|off (--settings <chemin> | --user)");
+        return 2;
+      }
+      const r = setTodoTools(settings, on);
+      console.log(r.changed ? `Plans des agents ${on ? "activés" : "désactivés"} dans ${settings}` : "Aucun changement");
+      if (r.backupPath) console.log(`Sauvegarde : ${r.backupPath}`);
       return 0;
     }
     if (cmd === "install") {

@@ -2,7 +2,7 @@
 import type { Session } from "@shared/types";
 import { Mascot } from "./Mascot";
 import { progress, Ring } from "./Ring";
-import { IconCheckCircle, IconCircle, IconOpen, IconTerminal, KindIcon } from "./Icons";
+import { IconCheckCircle, IconCircle, IconCross, IconOpen, IconTerminal, KindIcon } from "./Icons";
 import { agentLabel, backgroundOf, subtitleOf } from "./AgentRow";
 import { since } from "../format";
 
@@ -43,8 +43,9 @@ export function Detail({ session: s, now, onJump }: { session: Session; now: num
         </div>
       </div>
 
-      {s.steps.length > 0 && (
+      {s.steps.length > 0 ? (
         <div className="steps scroll" style={{ maxHeight: 220 }}>
+          <div className="steps-lbl">Plan</div>
           {s.steps.map((st) => (
             <div key={st.id} className={`step ${st.status}`}>
               <span className="st">{st.status === "completed" ? <IconCheckCircle /> : st.status === "in_progress" ? <span className="spinner" /> : <IconCircle />}</span>
@@ -55,6 +56,24 @@ export function Detail({ session: s, now, onJump }: { session: Session; now: num
             </div>
           ))}
         </div>
+      ) : (
+        s.activity.length > 0 && (
+          <div className="steps scroll" style={{ maxHeight: 220 }} data-testid="activity">
+            <div className="steps-lbl">Activité récente</div>
+            {s.activity.map((a) => (
+              <div key={a.id} className={`step ${a.status === "running" ? "in_progress" : a.status === "failed" ? "failed" : "completed"}`}>
+                <span className="st">{a.status === "running" ? <span className="spinner" /> : a.status === "failed" ? <IconCross /> : <IconCheckCircle />}</span>
+                <span className="kind">
+                  <KindIcon kind={a.kind} />
+                </span>
+                <span className="l">
+                  {a.agent && <span className="who">{agentLabel(a.agent)} · </span>}
+                  {a.label}
+                </span>
+              </div>
+            ))}
+          </div>
+        )
       )}
 
       {(bg.count > 0 || doneSubs.length > 0) && (

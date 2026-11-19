@@ -6,6 +6,7 @@
 import { execFile, spawn } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
+import { readIdeWindows, titleCandidates, type IdeWindow } from "./ide";
 
 export function sessionUri(sessionId: string): string {
   return `vscode://anthropic.claude-code/open?session=${encodeURIComponent(sessionId)}`;
@@ -75,6 +76,8 @@ export interface JumpDeps {
   launch?: Launcher;
   exists?: (p: string) => boolean;
   delay?: (ms: number) => Promise<void>;
+  /** fenêtres VS Code déclarées dans ~/.claude/ide/*.lock (lues si absent) */
+  ideWindows?: IdeWindow[];
 }
 
 export type FocusOutcome =
@@ -92,17 +95,21 @@ export async function focusVsCodeWindow(cwd: string, deps: JumpDeps): Promise<Fo
   const run = deps.run ?? defaultRun;
   const launch = deps.launch ?? defaultLaunch;
   const exists = deps.exists ?? fs.existsSync;
-  const folder = folderName(cwd);
+  // dossier racine de la fenêtre VS Code qui contient la session (et noms à chercher dans les titres)
+  const { names, root } = titleCandidates(cwd, deps.ideWindows ?? readIdeWindows(), platform);
+  deps.log?.(`jump : racine ${root}, titres cherchés ${JSON.stringify(names)}`);
 
   if (platform === "win32") {
     const script = path.join(deps.scriptsDir, "focus-window.ps1");
     const r = await run(
       "powershell.exe",
-      ["-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-File", script, "-Process", "Code", "-TitleContains", folder],
+      ["-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-File", script, "-Process", "Code", "-Candidates", names.join("|")],
       4000,
     );
     deps.log?.(`focus-window.ps1 : ${r.stdout.trim() || r.stderr.trim()}`);
-    return r.stdout.startsWith("FOCUSED") ? "focused" : "failed";
+    if (r.stdout.startsWith("FOCUSED")) return "focused";
+    if (r.stdout.startsWith("FALLBACK")) return "activated-app";
+    return "failed";
   }
 
   if (platform === "darwin") {
@@ -110,15 +117,17 @@ export async function focusVsCodeWindow(cwd: string, deps: JumpDeps): Promise<Fo
       if (cwd && exists(cwd)) {
         const code = macCodeCandidates().find((p) => exists(p));
         // `code <dossier>` réutilise la fenêtre déjà ouverte sur ce dossier, sinon en ouvre une
-        if (code) launch(code, [cwd]);
-        else launch("open", ["-a", "Visual Studio Code", cwd]);
+        // dossier racine de la fenêtre si connu (sinon `code` ouvrirait le sous-dossier dans une nouvelle fenêtre)
+        const target = root && exists(root) ? root : cwd;
+        if (code) launch(code, [target]);
+        else launch("open", ["-a", "Visual Studio Code", target]);
         return "opened-folder";
       }
       launch("open", ["-a", "Visual Studio Code"]);
       return "activated-app";
     };
     const script = path.join(deps.scriptsDir, "focus-window-mac.applescript");
-    const r = await run("osascript", [script, folder], 4000);
+    const r = await run("osascript", [script, root, ...names], 4000);
     deps.log?.(`focus-window-mac : code=${r.code} ${r.stdout.trim()} ${r.stderr.trim()}`);
     if (r.stdout.startsWith("FOCUSED")) return "focused";
     if (r.stdout.startsWith("NOTFOUND") || r.stdout.startsWith("NOAPP")) return openFolder();

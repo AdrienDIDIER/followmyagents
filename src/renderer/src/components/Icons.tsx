@@ -55,6 +55,12 @@ export const IconCheckCircle = () => (
     <path d="M5.2 8.3l1.9 1.9 3.8-4.2" fill="none" stroke="#1e1e22" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
   </svg>
 );
+export const IconCross = () => (
+  <svg viewBox="0 0 16 16" width="14" height="14">
+    <circle cx="8" cy="8" r="6.5" fill="var(--danger)" opacity=".75" />
+    <path d="M5.8 5.8l4.4 4.4M10.2 5.8l-4.4 4.4" stroke="#1e1e22" strokeWidth="1.6" strokeLinecap="round" />
+  </svg>
+);
 export const IconCircle = () => (
   <svg viewBox="0 0 16 16" width="14" height="14">
     <circle cx="8" cy="8" r="6" fill="none" stroke="var(--text-3)" strokeWidth="1.3" />

@@ -2,9 +2,11 @@
 # donné (par défaut VS Code : Code.exe) et dont le titre contient un texte.
 # Contourne la protection anti-vol de focus de Windows (touche ALT simulée).
 #
-# Usage : powershell -NoProfile -ExecutionPolicy Bypass -File focus-window.ps1 -Process Code -TitleContains "MonProjet"
-# Sortie : "FOCUSED <titre>" ou "NOTFOUND".
-param([string]$Process = "Code", [string]$TitleContains = "")
+# Usage : powershell -NoProfile -ExecutionPolicy Bypass -File focus-window.ps1 -Process Code -Candidates "racine|dossier|parent"
+#         (-TitleContains "MonProjet" reste accepté)
+# Les noms sont essayés dans l'ordre : segment exact du titre, puis titre qui contient le nom.
+# Sortie : "FOCUSED <titre>", "FALLBACK <titre>" (aucune correspondance : 1re fenêtre) ou "NOTFOUND".
+param([string]$Process = "Code", [string]$TitleContains = "", [string]$Candidates = "")
 Add-Type @"
 using System; using System.Text; using System.Collections.Generic; using System.Runtime.InteropServices;
 public static class FmaWin {
@@ -35,17 +37,27 @@ $pids = New-Object 'System.Collections.Generic.HashSet[uint32]'
 Get-Process -Name $Process -ErrorAction SilentlyContinue | ForEach-Object { [void]$pids.Add([uint32]$_.Id) }
 $wins = [FmaWin]::List($pids)
 $target = $null
-if ($TitleContains -ne "") {
-  # 1) titre VS Code « fichier - dossier - Visual Studio Code » : segment exact
-  $target = $wins | Where-Object { ($_.Value -split ' - ') -contains $TitleContains } | Select-Object -First 1
-  # 2) sinon, titre qui contient le texte
-  if (-not $target) { $target = $wins | Where-Object { $_.Value -like "*$TitleContains*" } | Select-Object -First 1 }
+$names = @()
+if ($Candidates -ne "") { $names = $Candidates -split '\|' | Where-Object { $_ -ne "" } }
+elseif ($TitleContains -ne "") { $names = @($TitleContains) }
+# 1) titre VS Code « fichier - dossier - Visual Studio Code » : segment exact
+foreach ($n in $names) {
+  if (-not $target) { $target = $wins | Where-Object { ($_.Value -split ' - ') -contains $n } | Select-Object -First 1 }
 }
-if (-not $target) { $target = $wins | Select-Object -First 1 }
-if (-not $target) { Write-Output "NOTFOUND"; exit 1 }
+# 2) sinon, titre qui contient le nom
+foreach ($n in $names) {
+  if (-not $target) { $target = $wins | Where-Object { $_.Value -like "*$n*" } | Select-Object -First 1 }
+}
+$status = "FOCUSED"
+if (-not $target) {
+  # aucune fenêtre ne correspond : la 1re fenêtre VS Code (mieux que rien)
+  $target = $wins | Select-Object -First 1
+  if (-not $target) { Write-Output "NOTFOUND"; exit 1 }
+  $status = "FALLBACK"
+}
 $h = $target.Key
 if ([FmaWin]::IsIconic($h)) { [void][FmaWin]::ShowWindow($h, 9) }
 [FmaWin]::keybd_event(0x12, 0, 0, [UIntPtr]::Zero)
 [FmaWin]::keybd_event(0x12, 0, 2, [UIntPtr]::Zero)
 [void][FmaWin]::SetForegroundWindow($h)
-Write-Output ("FOCUSED " + $target.Value)
+Write-Output ($status + " " + $target.Value)

@@ -96,3 +96,16 @@ Format : **choix** · alternatives · raison.
   - l'action d'un sous-agent préfixe le sous-titre du parent (« Explore · Lecture de config.ts »), sauf si le tour du parent est fini ;
   - vue détail : section « Sous-agents et tâches » (en cours, commandes en arrière-plan, 5 derniers résultats de sous-agents) ;
   - un prompt `<task-notification>` ne sert jamais de titre ; il marque la tâche terminée et affiche « Reprend : … ».
+
+## D20 — « Activité récente » quand l'agent n'a pas de plan
+- **Constat (retour utilisateur)** : sur Mac, la vue détail ne montrait que le bloc Terminal. La liste d'étapes cochées des captures venait de données de démonstration (`TodoWrite`), or cet outil est désactivé par défaut (Phase 0, e).
+- **Choix** :
+  1. Sans plan, la vue détail affiche les **10 dernières actions réelles** (lecture, recherche, modification, commande… ; ✓ terminée, ✗ échouée, spinner en cours ; préfixe du sous-agent si c'est lui). Pas d'anneau ni de « N/M » : ce n'est pas une progression (§3.1.4).
+  2. Option **« Plans des agents (active TodoWrite) »** dans le menu de l'icône (et `npm run hooks -- todos on --user`). Elle ajoute `env.CLAUDE_CODE_ENABLE_TODO_TOOLS = "1"` dans `settings.json`, avec confirmation et sauvegarde. Vérifié : ça réactive TodoWrite même dans le mode utilisé par l'extension VS Code. Les agents tiennent alors un plan pour les tâches longues : étapes cochées + anneau. La désinstallation des hooks ne touche pas à cette option.
+
+## D21 — Choix de la fenêtre VS Code grâce à `~/.claude/ide/*.lock`
+- **Constat (retour utilisateur)** : avec plusieurs fenêtres VS Code, ↗ ne ramenait pas toujours celle de la session. La recherche par nom du dossier `cwd` échoue quand la session tourne dans un sous-dossier, dans un workspace multi-dossiers, ou quand le titre ne contient pas ce nom.
+- **Choix** : l'extension Claude Code écrit un fichier `~/.claude/ide/<port>.lock` par fenêtre (`pid`, `workspaceFolders`). L'app garde les fenêtres vivantes, prend celle dont un dossier de workspace contient le `cwd` (le plus précis), et cherche dans les titres, dans l'ordre : nom du dossier racine de cette fenêtre, nom du dossier de la session, puis ses parents.
+  - macOS : l'AppleScript compare aussi le fichier actif de chaque fenêtre (`AXDocument`) au chemin racine.
+  - Si le dossier n'est ouvert nulle part, `code` rouvre le **dossier racine** (pas le sous-dossier, qui créerait une fenêtre de plus).
+- Limite : deux fenêtres sur le même dossier restent indiscernables (la 1re trouvée est prise).

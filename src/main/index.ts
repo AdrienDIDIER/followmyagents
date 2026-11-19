@@ -6,7 +6,7 @@ import type { AppSnapshot, PendingAnswer, Prefs } from "@shared/types";
 import { loadConfig, saveConfig, type AppConfig } from "./config";
 import { createHookServer, type HookServer } from "./server";
 import { SessionStore, type HookInput } from "./store";
-import { defaultSettingsPath, hooksState, installHooks, uninstallHooks } from "./installer";
+import { defaultSettingsPath, hooksState, installHooks, setTodoTools, todoToolsEnabled, uninstallHooks } from "./installer";
 import { Panel, rendererPaths } from "./panel";
 import { trayImage } from "./tray-icon";
 import { jumpToSession } from "./vscode";
@@ -115,6 +115,12 @@ function trayMenu(): Menu {
     { label: hooksLabel, enabled: false },
     { label: st.installed ? "Réinstaller les hooks…" : "Installer les hooks…", click: () => void doInstall() },
     { label: "Désinstaller les hooks…", enabled: st.installed, click: () => void doUninstall() },
+    {
+      label: "Plans des agents (active TodoWrite)",
+      type: "checkbox",
+      checked: todoToolsEnabled(SETTINGS_PATH),
+      click: (i) => void toggleTodoTools(i.checked),
+    },
     { label: "Ouvrir le dossier de configuration", click: () => void shell.openPath(app.getPath("userData")) },
     { type: "separator" },
     { label: "Quitter FollowMyAgents", role: "quit" },
@@ -144,6 +150,30 @@ async function doInstall() {
     dialog.showErrorBox("FollowMyAgents", (e as Error).message);
   }
   cachedHooksState(true);
+  pushSnapshot();
+}
+
+async function toggleTodoTools(enabled: boolean) {
+  const r = await dialog.showMessageBox({
+    type: "question",
+    buttons: [enabled ? "Activer" : "Désactiver", "Annuler"],
+    defaultId: 0,
+    cancelId: 1,
+    title: "FollowMyAgents",
+    message: enabled ? "Activer les plans des agents ?" : "Désactiver les plans des agents ?",
+    detail:
+      (enabled
+        ? "Claude Code a un outil de plan (TodoWrite) désactivé par défaut. Une fois activé, les agents tiennent une liste d'étapes pour les tâches longues : elle s'affiche dans le panneau (étapes cochées + anneau de progression).\n\n"
+        : "") +
+      `Fichier modifié : ${SETTINGS_PATH} (clé env.CLAUDE_CODE_ENABLE_TODO_TOOLS), avec sauvegarde. Effet sur les nouvelles sessions Claude Code.`,
+  });
+  if (r.response === 0) {
+    try {
+      setTodoTools(SETTINGS_PATH, enabled);
+    } catch (e) {
+      dialog.showErrorBox("FollowMyAgents", (e as Error).message);
+    }
+  }
   pushSnapshot();
 }
 

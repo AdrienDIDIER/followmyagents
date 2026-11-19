@@ -19,6 +19,17 @@ export interface Step {
   kind: StepKind;
 }
 
+/** Action récente de l'agent (journal affiché quand il n'y a pas de plan). */
+export interface ActivityItem {
+  id: string;
+  label: string;
+  kind: StepKind;
+  status: "running" | "done" | "failed";
+  /** type du sous-agent auteur, le cas échéant */
+  agent?: string;
+  at: number;
+}
+
 export interface LastCommand {
   command: string;
   outputTail: string[];
@@ -71,6 +82,8 @@ export interface Session {
   colorIndex: number; // 0..5 → --agent-1..6
   state: AgentState;
   steps: Step[];
+  /** 10 dernières actions (outils), pour la vue détail */
+  activity: ActivityItem[];
   lastCommand?: LastCommand;
   lastMessage?: string;
   subagents: Subagent[];
@@ -165,6 +178,8 @@ export interface Prefs {
 
 export interface HooksStatus {
   installed: boolean;
+  /** TodoWrite activé via env dans settings.json */
+  todoTools?: boolean;
   settingsPath: string;
   error?: string;
 }

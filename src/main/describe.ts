@@ -71,6 +71,33 @@ export function describeTool(toolName: string, input: Input = {}): string {
   }
 }
 
+/** Type d'icône d'un outil. */
+export function toolKind(toolName: string): StepKind {
+  switch (toolName) {
+    case "Bash":
+    case "PowerShell":
+    case "Monitor":
+      return "command";
+    case "Write":
+    case "Edit":
+    case "MultiEdit":
+    case "NotebookEdit":
+      return "write";
+    case "Read":
+    case "Grep":
+    case "Glob":
+      return "read";
+    case "WebFetch":
+    case "WebSearch":
+      return "web";
+    default:
+      return "other";
+  }
+}
+
+/** Outils qui n'ont pas leur place dans le journal d'activité. */
+export const QUIET_TOOLS = new Set(["ToolSearch", "TodoWrite", "TaskCreate", "TaskUpdate", "TaskList", "TaskGet", "AskUserQuestion"]);
+
 /** En-tête + détail d'une demande de permission. */
 export function describePermission(toolName: string, input: Input = {}): { headline: string; detail: string } {
   switch (toolName) {

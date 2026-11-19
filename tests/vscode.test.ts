@@ -3,7 +3,7 @@ import { cleanEnv, folderName, isAccessibilityError, jumpToSession, sessionUri, 
 
 const ok = (stdout: string): RunResult => ({ code: 0, stdout, stderr: "" });
 
-function setup(platform: NodeJS.Platform, result: RunResult, existing: string[] = []) {
+function setup(platform: NodeJS.Platform, result: RunResult, existing: string[] = [], ideWindows: { pid: number; workspaceFolders: string[] }[] = []) {
   const calls: { run: [string, string[]][]; launch: [string, string[]][]; open: string[]; waits: number[] } = {
     run: [],
     launch: [],
@@ -23,6 +23,7 @@ function setup(platform: NodeJS.Platform, result: RunResult, existing: string[] 
     openExternal: async (u: string) => void calls.open.push(u),
     delay: async (ms: number) => void calls.waits.push(ms),
     onAccessibilityDenied,
+    ideWindows,
   };
   return { deps, calls, onAccessibilityDenied };
 }
@@ -37,7 +38,8 @@ describe("jump macOS", () => {
     const [file, args] = calls.run[0];
     expect(file).toBe("osascript");
     expect(args[0]).toMatch(/focus-window-mac\.applescript$/);
-    expect(args[1]).toBe("mon-projet");
+    expect(args[1]).toBe(cwd); // chemin racine (aucune fenêtre déclarée : le cwd)
+    expect(args[2]).toBe("mon-projet");
     expect(calls.launch).toEqual([]);
     expect(calls.open).toEqual([sessionUri("abc-123")]);
     expect(calls.waits[0]).toBeGreaterThanOrEqual(400);
@@ -70,13 +72,41 @@ describe("jump macOS", () => {
   });
 });
 
+describe("jump : fenêtre retrouvée grâce à ~/.claude/ide/*.lock", () => {
+  it("session dans un sous-dossier : cherche d'abord le dossier racine de la fenêtre", async () => {
+    const wins = [
+      { pid: 1, workspaceFolders: ["/Users/me/work/autre"] },
+      { pid: 2, workspaceFolders: ["/Users/me/work/mono"] },
+    ];
+    const { deps, calls } = setup("darwin", ok("FOCUSED app.ts — mono"), [], wins);
+    await jumpToSession("s", "/Users/me/work/mono/packages/api", deps);
+    const [, args] = calls.run[0];
+    expect(args[1]).toBe("/Users/me/work/mono");
+    expect(args.slice(2, 4)).toEqual(["mono", "api"]);
+  });
+
+  it("dossier non ouvert : `code` rouvre le dossier RACINE (pas le sous-dossier)", async () => {
+    const wins = [{ pid: 2, workspaceFolders: ["/Users/me/work/mono"] }];
+    const code = "/usr/local/bin/code";
+    const { deps, calls } = setup("darwin", ok("NOTFOUND"), ["/Users/me/work/mono", "/Users/me/work/mono/packages/api", code], wins);
+    await jumpToSession("s", "/Users/me/work/mono/packages/api", deps);
+    expect(calls.launch).toEqual([[code, ["/Users/me/work/mono"]]]);
+  });
+
+  it("Windows : FALLBACK (aucune fenêtre correspondante) → activated-app", async () => {
+    const { deps } = setup("win32", ok("FALLBACK x - autre - Visual Studio Code"));
+    expect(await jumpToSession("s", String.raw`C:\w\p`, deps)).toBe("activated-app");
+  });
+});
+
 describe("jump Windows", () => {
   it("script PowerShell avec le nom du dossier, puis l'URI", async () => {
     const { deps, calls } = setup("win32", ok("FOCUSED x - mon-projet - Visual Studio Code"));
     expect(await jumpToSession("s1", "C:\\work\\mon-projet", deps)).toBe("focused");
     const [file, args] = calls.run[0];
     expect(file).toBe("powershell.exe");
-    expect(args.slice(-4)).toEqual(["-Process", "Code", "-TitleContains", "mon-projet"]);
+    expect(args.slice(-4, -1)).toEqual(["-Process", "Code", "-Candidates"]);
+    expect(args.at(-1)!.split("|")[0]).toBe("mon-projet");
     expect(calls.open).toEqual([sessionUri("s1")]);
   });
 });

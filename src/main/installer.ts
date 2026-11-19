@@ -227,3 +227,39 @@ export function hooksState(settingsPath: string, target: HookTarget): HooksState
     return { installed: false, upToDate: false, error: (e as Error).message };
   }
 }
+
+// ---------- option « Plans des agents » ----------
+// Dans Claude Code 2.1.322, l'outil de plan TodoWrite est désactivé par défaut
+// (l'extension VS Code lance même claude avec CLAUDE_CODE_ENABLE_TASKS=0).
+// La clé env de settings.json le réactive (vérifié en conditions réelles).
+export const TODO_ENV = "CLAUDE_CODE_ENABLE_TODO_TOOLS";
+
+export function todoToolsEnabled(settingsPath: string): boolean {
+  try {
+    const env = load(settingsPath).data.env as Record<string, unknown> | undefined;
+    return env?.[TODO_ENV] === "1" || env?.[TODO_ENV] === "true";
+  } catch {
+    return false;
+  }
+}
+
+export function setTodoTools(settingsPath: string, enabled: boolean, now = new Date()): { changed: boolean; backupPath?: string } {
+  const loaded = load(settingsPath);
+  const data = loaded.data;
+  if (data.env !== undefined && (typeof data.env !== "object" || data.env === null || Array.isArray(data.env))) {
+    throw new Error("La clé \"env\" de settings.json n'est pas un objet : aucune modification faite.");
+  }
+  const env = { ...((data.env as Record<string, unknown>) ?? {}) };
+  if (enabled) {
+    if (env[TODO_ENV] === "1") return { changed: false };
+    env[TODO_ENV] = "1";
+  } else {
+    if (!(TODO_ENV in env)) return { changed: false };
+    delete env[TODO_ENV];
+  }
+  if (Object.keys(env).length > 0) data.env = env;
+  else delete data.env;
+  const backupPath = loaded.exists ? backup(settingsPath, loaded.raw, now) : undefined;
+  writeAtomic(settingsPath, data, loaded.indent);
+  return { changed: true, backupPath };
+}

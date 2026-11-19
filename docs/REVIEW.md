@@ -36,8 +36,8 @@ Branche `feat/followmyagents` (rien n'a été poussé ni publié).
 
 | Suite | Contenu | Résultat |
 |---|---|---|
-| `npm test` (Vitest) | serveur (token, Origin, requêtes ouvertes, fermeture, Connection: close…), store (états, étapes, permissions, questions, timeouts, secours D5…), installeur (fusion, sauvegarde, idempotence, désinstallation exacte, JSON invalide, BOM, indentation), descriptions, transcripts, jump VS Code (macOS/Windows, commandes simulées), séquence réelle sous-agent + arrière-plan rejouée | ✅ **91/91** |
-| `npm run e2e` | app Electron pilotée par Playwright, vrais hooks HTTP : ouverture auto sans focus, Autoriser / Refuser / Toujours, fermeture auto, reste ouvert après un clic, « répondu dans VS Code », questions (simple, libre, multiples + multiSelect), Répondre dans VS Code (+ jump), vue détail, sous-agents et tâches en arrière-plan, ×, son, Échap, reduced-motion, aucune installation implicite | ✅ **21/21** |
+| `npm test` (Vitest) | serveur (token, Origin, requêtes ouvertes, fermeture, Connection: close…), store (états, étapes, permissions, questions, timeouts, secours D5…), installeur (fusion, sauvegarde, idempotence, désinstallation exacte, JSON invalide, BOM, indentation), descriptions, transcripts, jump VS Code (macOS/Windows, commandes simulées), séquence réelle sous-agent + arrière-plan rejouée | ✅ **103/103** |
+| `npm run e2e` | app Electron pilotée par Playwright, vrais hooks HTTP : ouverture auto sans focus, Autoriser / Refuser / Toujours, fermeture auto, reste ouvert après un clic, « répondu dans VS Code », questions (simple, libre, multiples + multiSelect), Répondre dans VS Code (+ jump), vue détail, sous-agents et tâches en arrière-plan, ×, son, Échap, reduced-motion, aucune installation implicite | ✅ **22/22** |
 | `npm run e2e:native` | Windows : focus jamais volé (fenêtre au premier plan vérifiée), capture réelle du verre, **vrai clic souris** sur le panneau non focalisable, raccourci global + Entrée + Échap, détacher à la souris + position mémorisée + rattacher | ✅ **5/5** |
 | `npm run e2e:live` | **vraies sessions Claude Code** (haiku) dans `./sandbox`, hooks écrits par l'installeur (CLI) : permission autorisée → commande exécutée et dialogue hôte annulé ; refusée → non exécutée ; question → l'agent reçoit la bonne option ; réponse côté hôte → la demande disparaît du widget ; commande + sous-agent en arrière-plan suivis jusqu'à leur fin ; 4 sessions en parallèle ; désinstallation | ✅ **7/7** |
 
@@ -84,8 +84,9 @@ npm start
 10. **« Ouvrir dans VS Code » / « Répondre dans VS Code »** → la demande quitte le widget, VS Code passe au premier plan **sur le bon onglet**, et le dialogue habituel y est toujours.
 11. **Bouton ↗ avec 2 fenêtres VS Code** ouvertes sur deux dossiers différents, chacune avec une session. Réduire VS Code. ↗ sur la session du dossier B → la fenêtre B passe devant, sur l'onglet de cette session. Idem pour A.
 12. **4 sessions** en parallèle, VS Code réduit → 4 lignes à jour, la mascotte de chacune selon son état, l'anneau seulement si l'agent a une liste d'étapes.
-13. **Vue détail** : clic sur une ligne → étapes (si présentes), bloc Terminal (dernière commande + 3 lignes), « ‹ Agents » pour revenir, mini-mascottes pour passer d'un agent à l'autre.
+13. **Vue détail** : clic sur une ligne → « Plan » si l'agent en tient un, sinon « Activité récente » (dernières actions cochées, action en cours qui tourne), bloc Terminal (dernière commande + 3 lignes), « ‹ Agents » pour revenir, mini-mascottes pour passer d'un agent à l'autre.
 13 bis. **Sous-agents / arrière-plan** : demander à l'agent « lance `sleep 30` en arrière-plan et un sous-agent en arrière-plan qui résume le README, puis rends la main ». → La ligne affiche « En arrière-plan · … » avec une mascotte active et « 2 en fond ». La vue détail liste le sous-agent (son action en cours) et la commande. Le résultat du sous-agent apparaît quand il a fini, et tout disparaît de « en fond » à la fin.
+13 ter. **Plans des agents** : clic droit sur l'icône → cocher « Plans des agents (active TodoWrite) » → confirmer. Dans une **nouvelle** session, demander une tâche en plusieurs étapes → la vue détail affiche « Plan » avec les étapes cochées au fur et à mesure, et la ligne un anneau de progression.
 14. **Raccourci** `Ctrl+Alt+A` (macOS : `Cmd+Option+A`) pendant qu'une demande attend → le panneau s'ouvre avec le focus sur la demande. `Entrée` = Autoriser, `Échap` = Refuser. Sur une question : `1`–`9` puis `Entrée`.
 15. **Détacher** (2e bouton de l'en-tête) → glisser le panneau par son en-tête n'importe où. Fermer / rouvrir : même position. « Rattacher » → retour près de l'icône.
 16. **Son** : bouton haut-parleur → un carillon discret à l'arrivée d'une demande. Préférence conservée après redémarrage.
@@ -148,6 +149,8 @@ Détail dans [`docs/DECISIONS.md`](DECISIONS.md). Les plus structurantes :
 - **D15** — Aucune installation automatique des hooks.
 - **D18** — Jump macOS : AppleScript (accès Accessibilité) pour ramener la bonne fenêtre (correctif après retour).
 - **D19** — Sous-agents et tâches en arrière-plan suivis (correctif après retour).
+- **D20** — « Activité récente » quand l'agent n'a pas de plan + option « Plans des agents » qui active TodoWrite (correctif après retour).
+- **D21** — Choix de la fenêtre VS Code grâce aux fichiers `~/.claude/ide/*.lock` (correctif après retour).
 
 ---
 
@@ -158,7 +161,7 @@ Détail dans [`docs/DECISIONS.md`](DECISIONS.md). Les plus structurantes :
 - **Listes d'étapes rares** : dans Claude Code 2.1.322, `TodoWrite` / `TaskCreate` sont désactivés par défaut. La plupart des sessions n'ont donc pas d'anneau (indicateur d'activité + temps écoulé à la place). Le format de `TaskCreate` / `TaskUpdate` est déduit, pas observé.
 - **Sessions reprises au démarrage** : impossible de savoir si une session est encore ouverte. Une session fermée depuis peu apparaît « en pause » jusqu'à 30 min après sa dernière activité (bouton × pour la retirer).
 - **Hooks et sessions déjà ouvertes** : Claude Code peut ne prendre les nouveaux hooks qu'au démarrage d'une session.
-- **Plusieurs fenêtres VS Code sur le même dossier** : le script de focus prend la première qui correspond.
+- **Plusieurs fenêtres VS Code sur le même dossier** : indiscernables, le script de focus prend la première qui correspond (D21).
 - **Titre de fenêtre VS Code personnalisé** (`window.title`) : si le nom du dossier n'apparaît pas dans le titre, le jump Windows met au premier plan une fenêtre VS Code quelconque. L'URI ouvre quand même la session dans la fenêtre active.
 - **Badge macOS** : `tray.setTitle` n'accepte pas de couleur, le nombre n'est donc pas orange.
 - **Sessions terminal (CLI)** : affichées (les hooks sont globaux), mais le jump ouvre la session dans VS Code (v2 du brief : `claude-cli://`).
