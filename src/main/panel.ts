@@ -78,12 +78,8 @@ export class Panel {
         spellcheck: false,
       },
     });
-    if (this.isMac) {
-      this.win.setAlwaysOnTop(true, "screen-saver");
-      this.win.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
-    } else {
-      this.win.setAlwaysOnTop(true, "floating");
-    }
+    this.keepOnTop();
+    if (this.isMac) this.win.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
     this.win.on("moved", () => {
       if (this.programmaticMove || !this.o.detached()) return;
       const [x, y] = this.win.getPosition();
@@ -96,6 +92,15 @@ export class Panel {
     });
     if (o.rendererUrl) this.win.loadURL(o.rendererUrl);
     else this.win.loadFile(o.rendererFile);
+  }
+
+  /**
+   * Toujours au premier plan. Niveau "screen-saver" partout : sous Windows, le niveau
+   * "floating" (et setAlwaysOnTop(true) seul) est ignoré par Electron 45 — vérifié avec
+   * WS_EX_TOPMOST (bug 0.1 → 0.3.0 : le panneau passait sous les autres fenêtres).
+   */
+  keepOnTop() {
+    this.win.setAlwaysOnTop(true, "screen-saver");
   }
 
   get visible(): boolean {
@@ -165,6 +170,7 @@ export class Panel {
   show(reason: OpenReason) {
     this.openedBy = reason;
     this.place();
+    this.keepOnTop();
     if (reason === "shortcut") {
       // l'utilisateur a demandé le panneau au clavier : on prend le focus
       if (this.isWin) this.win.setFocusable(true);

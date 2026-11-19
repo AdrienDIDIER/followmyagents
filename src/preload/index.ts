@@ -29,6 +29,7 @@ const api: FmaApi & {
   wantFocus: () => ipcRenderer.send("want-focus"),
   installUpdate: () => ipcRenderer.send("update-install"),
   setWidth: (w: number, done: boolean) => ipcRenderer.send("set-width", w, done),
+  dragWindow: (phase: "start" | "move" | "end", dx: number, dy: number) => ipcRenderer.send("drag-window", phase, dx, dy),
   checkUpdate: () => ipcRenderer.send("update-check"),
   contextMenu: () => ipcRenderer.send("context-menu"),
 };

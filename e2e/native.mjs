@@ -24,7 +24,7 @@ const PORT = 47897;
 const TOKEN = "f".repeat(64);
 fs.writeFileSync(path.join(tmp, "config.json"), JSON.stringify({ token: TOKEN, port: PORT, prefs: { sound: false, notifications: false } }));
 
-const ps = (script) => execFileSync("powershell.exe", ["-NoProfile", "-NonInteractive", "-Command", script], { encoding: "utf8" }).trim();
+const ps = (script) => execFileSync("powershell.exe", ["-NoProfile", "-NonInteractive", "-Command", script], { encoding: "utf8", windowsHide: true }).trim(); // console masquée : sinon elle peut intercepter les clics
 const WIN32 = `Add-Type @"
 using System; using System.Text; using System.Runtime.InteropServices;
 public static class N {
@@ -95,6 +95,12 @@ try {
   });
   await page.waitForSelector('[data-testid="permission"]');
   await sleep(900);
+
+  await check("toujours au premier plan (WS_EX_TOPMOST) après l'ouverture", async () => {
+    const hwnd = await app.evaluate(() => globalThis.__fma.panel.win.getNativeWindowHandle().readBigUInt64LE(0).toString());
+    const top = ps(`Add-Type -MemberDefinition '[DllImport("user32.dll")] public static extern int GetWindowLong(IntPtr h, int i);' -Name GT -Namespace NT; ([NT.GT]::GetWindowLong([IntPtr]${hwnd}, -20) -band 8) -ne 0`);
+    assert.equal(top, "True", "le panneau n'est pas au premier plan");
+  });
 
   await check("ouverture automatique : le focus clavier reste sur l'application active", async () => {
     assert.equal(foreground(), before);

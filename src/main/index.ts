@@ -1,5 +1,5 @@
 // Process principal : serveur de hooks + store + icône système + panneau.
-import { app, clipboard, dialog, globalShortcut, ipcMain, Menu, Notification, shell, systemPreferences, Tray } from "electron";
+import { app, clipboard, dialog, screen, globalShortcut, ipcMain, Menu, Notification, shell, systemPreferences, Tray } from "electron";
 import path from "node:path";
 import fs from "node:fs";
 import type { AppSnapshot, PendingAnswer, Prefs } from "@shared/types";
@@ -163,6 +163,16 @@ function trayMenu(): Menu {
       click: () => {
         clipboard.writeText(JSON.stringify(lastJumpDiag, null, 2));
         void dialog.showMessageBox({ type: "info", title: "FollowMyAgents", message: "Diagnostic copié dans le presse-papiers.", detail: "Collez-le dans votre message." });
+      },
+    },
+    {
+      label: "Ramener le panneau ici (position et taille par défaut)",
+      click: () => {
+        cfg.detachedPos = undefined;
+        cfg.prefs = { ...cfg.prefs, detached: false, panelWidth: 320 };
+        saveConfig(cfg, app.getPath("userData"));
+        panel.show("click");
+        pushSnapshot();
       },
     },
     { label: "Ouvrir le dossier de configuration", click: () => void shell.openPath(app.getPath("userData")) },
@@ -611,6 +621,40 @@ async function start() {
   ipcMain.on("resize", (_e, h: number) => panel.setContentHeight(h));
   ipcMain.on("want-focus", () => panel.takeFocus());
   ipcMain.on("update-install", () => void confirmUpdate());
+  // Déplacement du panneau détaché, géré par l'app (le glisser natif -webkit-app-region
+  // n'est pas fiable sur ce panneau non activable chargé caché : D27)
+  // Le processus principal suit le CURSEUR réel (~60 fois/s) entre "start" et "end" :
+  // le panneau suit la souris même si la page perd des événements.
+  let dragTimer: NodeJS.Timeout | null = null;
+  let dragOffset = { x: 0, y: 0 };
+  const endDrag = () => {
+    if (!dragTimer) return;
+    clearInterval(dragTimer);
+    dragTimer = null;
+    panel.place(); // garde le panneau dans l'écran
+    const [x, y] = panel.win.getPosition();
+    cfg.detachedPos = { x, y };
+    saveConfig(cfg, app.getPath("userData"));
+  };
+  ipcMain.on("drag-window", (_e, phase: string) => {
+    if (!cfg.prefs.detached) return;
+    if (phase === "start") {
+      const c = screen.getCursorScreenPoint();
+      const [x, y] = panel.win.getPosition();
+      dragOffset = { x: c.x - x, y: c.y - y };
+      if (dragTimer) clearInterval(dragTimer);
+      dragTimer = setInterval(() => {
+        const p = screen.getCursorScreenPoint();
+        const pos = { x: p.x - dragOffset.x, y: p.y - dragOffset.y };
+        cfg.detachedPos = pos;
+        panel.win.setPosition(pos.x, pos.y);
+      }, 16);
+      // filet de sécurité : jamais plus de 30 s de glisser sans « end »
+      setTimeout(endDrag, 30_000);
+    } else if (phase === "end") {
+      endDrag();
+    }
+  });
   ipcMain.on("set-width", (_e, w: number, done: boolean) => {
     const width = Math.max(MIN_WIDTH, Math.min(MAX_WIDTH, Math.round(Number(w) || 320)));
     const old = cfg.prefs.panelWidth ?? 320;

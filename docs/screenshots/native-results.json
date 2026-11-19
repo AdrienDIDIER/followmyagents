@@ -1,6 +1,10 @@
 [
   [
     "✅",
+    "toujours au premier plan (WS_EX_TOPMOST) après l'ouverture"
+  ],
+  [
+    "✅",
     "ouverture automatique : le focus clavier reste sur l'application active"
   ],
   [
@@ -10,11 +14,6 @@
   [
     "✅",
     "vrai clic souris sur « Autoriser » : décision envoyée, focus non volé"
-  ],
-  [
-    "❌",
-    "raccourci global Ctrl+Alt+A : ouvre le panneau, Entrée autorise la 1re demande, Échap ferme",
-    "panneau non affiché\n\nfalse !== true\n"
   ],
   [
     "✅",

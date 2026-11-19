@@ -149,3 +149,9 @@ Format : **choix** · alternatives · raison.
 - **Bloc Terminal** : commande limitée à 3 lignes, un clic l'affiche en entier.
 - **Sous-agents terminés** : seuls les 3 derniers sont affichés dans la vue détail.
 - **Largeur réglable** : poignée sur le bord gauche du panneau (300–600 px), double-clic pour revenir à 320 px. Le bord droit reste fixe. La largeur est mémorisée (`prefs.panelWidth`). Vérifié avec un vrai glisser à la souris (`e2e/native.mjs`).
+
+## D27 — Panneau au premier plan et déplacement fiables (retour utilisateur sur la 0.3.0)
+- **Au premier plan** : sous Windows, `setAlwaysOnTop(true, "floating")` et `setAlwaysOnTop(true)` sont **ignorés** par Electron 45 (vérifié : `WS_EX_TOPMOST` absent depuis la 0.1). Le panneau passait donc sous les autres fenêtres. Correctif : niveau `"screen-saver"` sur toutes les plateformes, réappliqué à chaque ouverture. Vérifié par `e2e/native.mjs` (lecture de `WS_EX_TOPMOST`).
+- **Déplacement** : le glisser natif (`-webkit-app-region: drag`) n'était pas fiable sur ce panneau non activable chargé caché : déplacement nul ou partiel selon les fois. Il est remplacé par un glisser géré par l'app : la page signale début et fin, et le **processus principal suit le curseur réel** (~60 fois/s, `screen.getCursorScreenPoint`). Poignée : en-tête **et** zone des quotas, en mode détaché.
+- **Secours** : menu de l'icône → « Ramener le panneau ici (position et taille par défaut) ».
+- **Tests** : les clics réels perdus en test venaient des consoles PowerShell lancées par les tests eux-mêmes, qui passaient devant le panneau. Elles sont désormais masquées (`windowsHide`). Glisser réel : 6/6 réussites.

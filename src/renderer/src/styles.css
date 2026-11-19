@@ -142,8 +142,13 @@ input:focus-visible,
   padding: 2px 4px 8px 6px;
   min-height: 30px;
 }
-.head.drag {
-  -webkit-app-region: drag;
+/* panneau détaché : en-tête et quotas servent de poignée (glisser géré par l'app, D27) */
+.movable {
+  cursor: grab;
+  touch-action: none;
+}
+.movable:active {
+  cursor: grabbing;
 }
 .head .title {
   font-size: 13px;

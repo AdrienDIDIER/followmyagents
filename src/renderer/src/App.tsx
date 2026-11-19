@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { AppSnapshot, PendingAnswer, QuotaView, Session } from "@shared/types";
 import { PermissionBlock, QuestionBlock, type BlockHandle } from "./components/Attention";
 import { AgentRow } from "./components/AgentRow";
@@ -73,6 +73,7 @@ export function App() {
   }, [view.detail]);
 
   const answer = useCallback((id: string, a: PendingAnswer) => fma.answer(id, a), []);
+  const dragProps = useWindowDrag(Boolean(snap?.prefs.detached));
 
   if (!snap) return <div ref={root} />;
 
@@ -92,7 +93,7 @@ export function App() {
   const openDetail = (s: Session) => setView({ detail: s.id, dir: "in" });
 
   const header = detail ? (
-    <div className={`head${snap.prefs.detached ? " drag" : ""}`}>
+    <div className={`head${snap.prefs.detached ? " movable" : ""}`} {...dragProps}>
       <button className="back" onClick={() => setView({ detail: null, dir: "back" })}>
         <IconChevronLeft />
         Agents
@@ -115,7 +116,7 @@ export function App() {
       </div>
     </div>
   ) : (
-    <div className={`head${snap.prefs.detached ? " drag" : ""}`} onContextMenu={() => fma.contextMenu()}>
+    <div className={`head${snap.prefs.detached ? " movable" : ""}`} onContextMenu={() => fma.contextMenu()} {...dragProps}>
       <span className="title">Agents</span>
       <span className="count" data-testid="count">
         {active.length === 0 ? "aucun" : plural(active.length, "actif", "actifs")}
@@ -142,7 +143,11 @@ export function App() {
     >
       <ResizeHandle width={snap.prefs.panelWidth ?? 320} />
       {header}
-      {!detail && <Quotas groups={[["Claude", snap.quota], ["Codex", snap.codexQuota]]} now={t} />}
+      {!detail && (
+        <div {...dragProps} className={snap.prefs.detached ? "movable" : undefined}>
+          <Quotas groups={[["Claude", snap.quota], ["Codex", snap.codexQuota]]} now={t} />
+        </div>
+      )}
       <div className="scroll" style={{ maxHeight: Math.max(160, snap.maxHeight - 62) }}>
         {detail ? (
           <div className={view.dir === "in" ? "slide-in" : ""} key={detail.id}>
@@ -356,6 +361,29 @@ function UpdateNotice({ snap }: { snap: AppSnapshot }) {
     );
   }
   return null;
+}
+
+/** Glisser pour déplacer le panneau détaché (sauf sur les boutons). Le déplacement
+ *  lui-même est fait par le processus principal, qui suit le curseur (D27). */
+function useWindowDrag(enabled: boolean) {
+  const active = useRef(false);
+  if (!enabled) return {};
+  const stop = () => {
+    if (!active.current) return;
+    active.current = false;
+    fma.dragWindow("end", 0, 0);
+  };
+  return {
+    onPointerDown: (e: React.PointerEvent) => {
+      if (e.button !== 0 || (e.target as HTMLElement).closest("button, input, a")) return;
+      e.currentTarget.setPointerCapture(e.pointerId);
+      active.current = true;
+      fma.dragWindow("start", 0, 0);
+    },
+    onPointerUp: stop,
+    onPointerCancel: stop,
+    onLostPointerCapture: stop,
+  };
 }
 
 /** Poignée du bord gauche : tirer pour élargir / rétrécir le panneau (300–600 px). */

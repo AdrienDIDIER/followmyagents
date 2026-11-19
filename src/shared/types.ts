@@ -258,6 +258,8 @@ export interface FmaApi {
   resize(height: number): void;
   wantFocus(): void;
   installUpdate(): void;
+  /** déplacement du panneau détaché : phase start/move/end, décalage depuis le début du glisser */
+  dragWindow(phase: "start" | "move" | "end", dx: number, dy: number): void;
   /** largeur du panneau ; done = fin du glisser (mémorisation) */
   setWidth(width: number, done: boolean): void;
   checkUpdate(): void;
