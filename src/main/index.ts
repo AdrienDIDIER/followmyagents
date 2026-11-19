@@ -247,6 +247,7 @@ function updateMenuItems(): Electron.MenuItemConstructorOptions[] {
 }
 
 async function checkUpdate(manual = false) {
+  lastUpdateCheck = Date.now();
   const st = await updater.check();
   if (!manual) return;
   if (st.state === "up-to-date") {
@@ -278,11 +279,23 @@ async function confirmUpdate() {
 }
 
 // ---------- panneau ----------
+let lastUpdateCheck = 0;
+/** Vérifie les mises à jour si la dernière vérification date de plus de minAgeMs. */
+function maybeCheckUpdate(minAgeMs = 30 * 60_000) {
+  if (!cfg.prefs.autoUpdateCheck) return;
+  if (process.env.FMA_E2E === "1" && !process.env.FMA_UPDATE_API) return;
+  if (["checking", "available", "downloading", "installing"].includes(updater.state.state)) return;
+  if (Date.now() - lastUpdateCheck < minAgeMs) return;
+  lastUpdateCheck = Date.now();
+  void updater.check();
+}
+
 let autoHideTimer: NodeJS.Timeout | null = null;
 function togglePanel(reason: "click" | "shortcut") {
   if (panel.visible) panel.hide();
   else {
     panel.show(reason);
+    maybeCheckUpdate();
     if (reason === "shortcut") panel.win.webContents.send("focus-pending", store.getPendings()[0]?.id ?? null);
   }
 }
@@ -448,11 +461,11 @@ async function start() {
 
   setInterval(() => store.tick(), 1000);
 
-  // mises à jour : 15 s après le démarrage puis toutes les 6 h (pas en test, sauf API simulée)
+  // mises à jour : 3 s après le démarrage, puis toutes les 6 h et à chaque ouverture
+  // du panneau si la dernière vérification a plus de 30 min (pas en test, sauf API simulée)
   if (process.env.FMA_E2E !== "1" || process.env.FMA_UPDATE_API) {
-    const auto = () => cfg.prefs.autoUpdateCheck && void updater.check();
-    setTimeout(auto, 15_000);
-    setInterval(auto, 6 * 3600_000);
+    setTimeout(() => maybeCheckUpdate(0), 3_000);
+    setInterval(() => maybeCheckUpdate(0), 6 * 3600_000);
   }
 
   // ---------- IPC ----------

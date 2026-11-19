@@ -20,7 +20,7 @@ const fakeSettings = path.join(tmp, "claude", "settings.json");
 const PORT = 47899;
 const TOKEN = "e".repeat(64);
 fs.mkdirSync(userData, { recursive: true });
-fs.writeFileSync(path.join(userData, "config.json"), JSON.stringify({ token: TOKEN, port: PORT, prefs: { sound: false, notifications: false } }));
+fs.writeFileSync(path.join(userData, "config.json"), JSON.stringify({ token: TOKEN, port: PORT, prefs: { sound: false, notifications: false, autoUpdateCheck: false } }));
 
 const env = { ...process.env };
 for (const k of Object.keys(env)) if (k.startsWith("CLAUDE") || k === "ELECTRON_RUN_AS_NODE") delete env[k];
