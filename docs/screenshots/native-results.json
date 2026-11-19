@@ -10,5 +10,13 @@
   [
     "✅",
     "vrai clic souris sur « Autoriser » : décision envoyée, focus non volé"
+  ],
+  [
+    "✅",
+    "raccourci global Ctrl+Alt+A : ouvre le panneau, Entrée autorise la 1re demande, Échap ferme"
+  ],
+  [
+    "✅",
+    "détacher : le panneau se déplace à la souris et sa position est mémorisée"
   ]
 ]

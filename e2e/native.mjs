@@ -128,6 +128,60 @@ try {
     await sleep(300);
     assert.equal(foreground(), before);
   });
+  await check("raccourci global Ctrl+Alt+A : ouvre le panneau, Entrée autorise la 1re demande, Échap ferme", async () => {
+    const req = post("/hook/permission", {
+      session_id: "scout",
+      cwd: "C:\\work\\scout",
+      hook_event_name: "PermissionRequest",
+      tool_name: "Bash",
+      tool_input: { command: "echo clavier" },
+    });
+    await page.waitForSelector('[data-testid="permission"]');
+    await sleep(400);
+    await app.evaluate(() => globalThis.__fma.hide());
+    await sleep(300);
+    // Ctrl (0x11) + Alt (0x12) + A (0x41)
+    ps(`${WIN32} $k = Add-Type -MemberDefinition '[DllImport("user32.dll")] public static extern void keybd_event(byte v, byte s, uint f, UIntPtr e);' -Name K -PassThru; foreach ($v in 0x11,0x12,0x41) { $k::keybd_event($v,0,0,[UIntPtr]::Zero) }; foreach ($v in 0x41,0x12,0x11) { $k::keybd_event($v,0,2,[UIntPtr]::Zero) }`);
+    await sleep(700);
+    assert.equal(await app.evaluate(() => globalThis.__fma.panel.visible), true, "panneau non affiché");
+    assert.equal(await app.evaluate(() => globalThis.__fma.panel.win.isFocused()), true, "le raccourci doit donner le focus au panneau");
+    ps(`$k = Add-Type -MemberDefinition '[DllImport("user32.dll")] public static extern void keybd_event(byte v, byte s, uint f, UIntPtr e);' -Name K2 -PassThru; $k::keybd_event(0x0D,0,0,[UIntPtr]::Zero); $k::keybd_event(0x0D,0,2,[UIntPtr]::Zero)`);
+    const res = await Promise.race([req, sleep(3000).then(() => "timeout")]);
+    assert.notEqual(res, "timeout", "Entrée n'a pas autorisé");
+    assert.equal(res.hookSpecificOutput.decision.behavior, "allow");
+    await sleep(300);
+    ps(`$k = Add-Type -MemberDefinition '[DllImport("user32.dll")] public static extern void keybd_event(byte v, byte s, uint f, UIntPtr e);' -Name K3 -PassThru; $k::keybd_event(0x1B,0,0,[UIntPtr]::Zero); $k::keybd_event(0x1B,0,2,[UIntPtr]::Zero)`);
+    await sleep(400);
+    assert.equal(await app.evaluate(() => globalThis.__fma.panel.visible), false, "Échap doit fermer le panneau");
+  });
+
+  await check("détacher : le panneau se déplace à la souris et sa position est mémorisée", async () => {
+    await app.evaluate(() => globalThis.__fma.show("click"));
+    await sleep(400);
+    await page.getByRole("button", { name: "Détacher le panneau", exact: true }).click();
+    await sleep(400);
+    const b0 = await app.evaluate(() => globalThis.__fma.panel.win.getBounds());
+    const hx = Math.round((b0.x + 60) * dpr);
+    const hy = Math.round((b0.y + 22) * dpr);
+    ps(
+      `${WIN32} $p = New-Object N+POINT; [void][N]::GetCursorPos([ref]$p); [void][N]::SetCursorPos(${hx}, ${hy}); Start-Sleep -Milliseconds 150; [N]::mouse_event(2,0,0,0,[UIntPtr]::Zero); ` +
+        `for ($i = 1; $i -le 20; $i++) { [void][N]::SetCursorPos(${hx} - 15 * $i, ${hy} - 10 * $i); Start-Sleep -Milliseconds 15 }; [N]::mouse_event(4,0,0,0,[UIntPtr]::Zero); Start-Sleep -Milliseconds 300; [void][N]::SetCursorPos($p.X, $p.Y)`,
+    );
+    await sleep(500);
+    const b1 = await app.evaluate(() => globalThis.__fma.panel.win.getBounds());
+    assert.ok(b0.x - b1.x > 200 && b0.y - b1.y > 120, `déplacement insuffisant : ${JSON.stringify(b0)} → ${JSON.stringify(b1)}`);
+    const cfg = await app.evaluate(() => globalThis.__fma.cfg());
+    assert.deepEqual(cfg.detachedPos, { x: b1.x, y: b1.y });
+    await app.evaluate(() => globalThis.__fma.hide());
+    await app.evaluate(() => globalThis.__fma.show("click"));
+    await sleep(300);
+    const b2 = await app.evaluate(() => globalThis.__fma.panel.win.getBounds());
+    assert.deepEqual([b2.x, b2.y], [b1.x, b1.y], "position non conservée");
+    await page.getByRole("button", { name: "Rattacher à l'icône", exact: true }).click();
+    await sleep(300);
+    const b3 = await app.evaluate(() => globalThis.__fma.panel.win.getBounds());
+    assert.deepEqual([b3.x, b3.y], [b0.x, b0.y], "le rattachement doit ramener le panneau sous l'icône");
+  });
 } finally {
   await app.close().catch(() => {});
   fs.rmSync(tmp, { recursive: true, force: true });
