@@ -93,7 +93,7 @@ export function parseUsage(json: unknown): QuotaLimit[] {
     return out;
   }
   for (const [key, label] of [
-    ["five_hour", "Session"],
+    ["five_hour", "5 h"],
     ["seven_day", "Semaine"],
     ["seven_day_opus", "Semaine Opus"],
     ["seven_day_sonnet", "Semaine Sonnet"],
@@ -114,7 +114,7 @@ export function parseUsage(json: unknown): QuotaLimit[] {
 }
 
 function labelFor(kind: string, group: string): string {
-  if (kind === "session" || group === "session") return "Session";
+  if (kind === "session" || group === "session") return "5 h";
   if (kind === "weekly_all") return "Semaine";
   if (kind.startsWith("weekly_")) return `Semaine ${kind.slice(7).replace(/_/g, " ")}`;
   if (group === "weekly") return "Semaine";

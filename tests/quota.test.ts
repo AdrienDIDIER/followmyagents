@@ -17,14 +17,14 @@ const real = {
 describe("parseUsage", () => {
   it("lit le tableau limits (format actuel)", () => {
     expect(parseUsage(real)).toEqual([
-      { kind: "session", label: "Session", percent: 21, severity: "normal", resetsAt: Date.parse("2026-11-20T01:30:00.652433+00:00") },
+      { kind: "session", label: "5 h", percent: 21, severity: "normal", resetsAt: Date.parse("2026-11-20T01:30:00.652433+00:00") },
       { kind: "weekly_all", label: "Semaine", percent: 20, severity: "normal", resetsAt: Date.parse("2026-11-21T01:00:00.652453+00:00") },
     ]);
   });
   it("se rabat sur five_hour / seven_day (ancien format) et calcule la sévérité", () => {
     const r = parseUsage({ five_hour: { utilization: 92, resets_at: "2026-11-20T01:30:00Z" }, seven_day: { utilization: 80 } });
     expect(r.map((l) => [l.label, l.percent, l.severity])).toEqual([
-      ["Session", 92, "critical"],
+      ["5 h", 92, "critical"],
       ["Semaine", 80, "warning"],
     ]);
   });

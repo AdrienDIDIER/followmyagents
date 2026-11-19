@@ -15,13 +15,12 @@ interface Window {
   resetsAt?: number | null;
 }
 
+/** Libellé d'une fenêtre, identique pour Claude et Codex : « 5 h », « Semaine », « 30 jours »… */
 export function windowLabel(mins: number | null | undefined): string {
   if (!mins) return "Limite";
-  if (mins <= 5 * 60) return `${Math.round(mins / 60)} h`;
-  if (mins <= 24 * 60) return "Jour";
-  if (mins <= 7 * 24 * 60) return "Semaine";
-  if (mins <= 31 * 24 * 60) return "Mois";
-  return `${Math.round(mins / 1440)} j`;
+  if (mins <= 24 * 60) return `${Math.round(mins / 60)} h`;
+  if (mins === 7 * 24 * 60) return "Semaine";
+  return `${Math.round(mins / 1440)} jours`;
 }
 
 /** Réponse de account/rateLimits/read → limites affichables. */

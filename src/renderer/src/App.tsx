@@ -275,24 +275,33 @@ function Quotas({ groups, now }: { groups: [string, QuotaView][]; now: number })
   return (
     <div className="quotas" data-testid="quota">
       {shown.map(([name, q]) => (
-        <QuotaGroup key={name} name={name} quota={q} now={now} caption={shown.length > 1} />
+        <QuotaGroup key={name} name={name} quota={q} now={now} />
       ))}
     </div>
   );
 }
 
-function QuotaGroup({ name, quota, now, caption }: { name: string; quota: QuotaView; now: number; caption: boolean }) {
+const PLAN_LABELS: Record<string, string> = { free: "Gratuit", pro: "Pro", plus: "Plus", max: "Max", team: "Team", enterprise: "Entreprise", business: "Business", edu: "Edu" };
+
+function QuotaGroup({ name, quota, now }: { name: string; quota: QuotaView; now: number }) {
+  const plan = quota.plan ? PLAN_LABELS[quota.plan.toLowerCase()] ?? quota.plan : undefined;
   if (quota.limits.length === 0) {
     return (
-      <div className="quota muted" title={quota.message}>
-        Quota {name} indisponible
+      <div className="quota" title={quota.message}>
+        <div className="quota-cap">
+          <b>{name}</b>
+          <span className="muted-txt">quota indisponible</span>
+        </div>
       </div>
     );
   }
   const stale = quota.state !== "ok";
   return (
     <div className={`quota${stale ? " stale" : ""}`} title={stale ? quota.message : undefined} data-agent={name}>
-      {caption && <div className="quota-cap">{name}</div>}
+      <div className="quota-cap">
+        <b>{name}</b>
+        {plan && <span className="plan">{plan}</span>}
+      </div>
       {quota.limits.slice(0, 3).map((l) => {
         const reset = resetLabel(l.resetsAt, now);
         return (

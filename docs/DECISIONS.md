@@ -139,6 +139,7 @@ Format : **choix** · alternatives · raison.
 
 ## D25 — Quota Codex
 - **Source** : Codex lui-même, via `codex app-server` → `account/rateLimits/read` (protocole décrit par `codex app-server generate-json-schema`). L'app lance un court processus, lit, puis l'arrête (~0,5 s). Elle **ne lit pas** la connexion Codex.
-- **Fenêtres** : `primary` / `secondary` avec `usedPercent`, `windowDurationMins`, `resetsAt`. Libellés selon la durée (5 h, Jour, Semaine, Mois). Offre free constatée : une fenêtre de 30 jours.
+- **Fenêtres** : `primary` / `secondary` avec `usedPercent`, `windowDurationMins`, `resetsAt`. Libellés communs à Claude et Codex, selon la durée : « 5 h », « Semaine », « 30 jours ». Chaque fournisseur a son en-tête avec son offre (« Claude · Pro », « Codex · Gratuit »).
+- **Offre gratuite Codex** (constaté le 2026-11-19 via `account/rateLimits/read` et `account/read`) : une seule fenêtre de 30 jours, pas de fenêtre de 5 h. Les offres payantes déclarent en général 5 h + semaine ; l'app affiche ce que Codex renvoie.
 - **Rythme** : toutes les 5 min et à l'ouverture du panneau (si > 2 min). Rien n'est affiché si Codex n'est pas installé.
 - **Binaire** : extension VS Code `openai.chatgpt-*/bin/<plateforme>/codex`, puis app Codex, Homebrew, npm.

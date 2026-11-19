@@ -184,7 +184,7 @@ input:focus-visible,
 .quotas {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 7px;
   padding: 0 6px 8px;
   margin-top: -2px;
 }
@@ -194,10 +194,30 @@ input:focus-visible,
   gap: 4px;
 }
 .quota-cap {
-  font-size: 10px;
-  font-weight: 600;
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  font-size: 11px;
   color: var(--text-3);
-  letter-spacing: 0.02em;
+}
+.quota-cap b {
+  font-weight: 600;
+  color: var(--text-1);
+}
+.quota-cap .plan {
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--text-2);
+  background: var(--fill-1);
+  border-radius: 4px;
+  padding: 0 5px;
+}
+.quota-cap .muted-txt {
+  font-size: 11px;
+}
+.quota + .quota {
+  border-top: 0.5px solid var(--separator);
+  padding-top: 6px;
 }
 .quota.muted {
   font-size: 11px;

@@ -19,7 +19,7 @@ describe("parseCodexRateLimits", () => {
   it("offre free : une fenêtre de 30 jours", () => {
     expect(parseCodexRateLimits(realFree)).toEqual({
       plan: "free",
-      limits: [{ kind: "codex_primary", label: "Mois", percent: 2, severity: "normal", resetsAt: 1797713464000 }],
+      limits: [{ kind: "codex_primary", label: "30 jours", percent: 2, severity: "normal", resetsAt: 1797713464000 }],
     });
   });
   it("offre payante : 5 h puis semaine, triées par durée", () => {
@@ -43,7 +43,7 @@ describe("parseCodexRateLimits", () => {
     expect(parseCodexRateLimits({})).toEqual({ limits: [] });
   });
   it("libellés des fenêtres", () => {
-    expect([300, 1440, 10080, 43200, 90000, null].map((m) => windowLabel(m))).toEqual(["5 h", "Jour", "Semaine", "Mois", "63 j", "Limite"]);
+    expect([300, 1440, 10080, 43200, null].map((m) => windowLabel(m))).toEqual(["5 h", "24 h", "Semaine", "30 jours", "Limite"]);
   });
 });
 
