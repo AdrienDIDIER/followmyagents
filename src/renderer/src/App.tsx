@@ -140,6 +140,7 @@ export function App() {
       className={`panel${glass ? "" : " no-glass"}${isWin ? " win from-bottom" : ""}${snap.platform === "darwin" ? " mac" : ""}${opening ? " opening" : ""}`}
       data-testid="panel"
     >
+      <ResizeHandle width={snap.prefs.panelWidth ?? 320} />
       {header}
       {!detail && <Quotas groups={[["Claude", snap.quota], ["Codex", snap.codexQuota]]} now={t} />}
       <div className="scroll" style={{ maxHeight: Math.max(160, snap.maxHeight - 62) }}>
@@ -355,6 +356,40 @@ function UpdateNotice({ snap }: { snap: AppSnapshot }) {
     );
   }
   return null;
+}
+
+/** Poignée du bord gauche : tirer pour élargir / rétrécir le panneau (300–600 px). */
+function ResizeHandle({ width }: { width: number }) {
+  const drag = useRef<{ x: number; w: number; last: number; raf: number } | null>(null);
+  return (
+    <div
+      className="resize-handle"
+      title="Tirer pour redimensionner"
+      onPointerDown={(e) => {
+        e.currentTarget.setPointerCapture(e.pointerId);
+        drag.current = { x: e.screenX, w: width, last: width, raf: 0 };
+      }}
+      onPointerMove={(e) => {
+        const d = drag.current;
+        if (!d) return;
+        d.last = d.w + (d.x - e.screenX);
+        if (!d.raf) {
+          d.raf = requestAnimationFrame(() => {
+            if (drag.current) {
+              drag.current.raf = 0;
+              fma.setWidth(drag.current.last, false);
+            }
+          });
+        }
+      }}
+      onPointerUp={() => {
+        const d = drag.current;
+        drag.current = null;
+        if (d) fma.setWidth(d.last, true);
+      }}
+      onDoubleClick={() => fma.setWidth(320, true)}
+    />
+  );
 }
 
 function SoundBtn({ on }: { on: boolean }) {

@@ -185,6 +185,8 @@ export interface Prefs {
   autoUpdateCheck: boolean;
   /** afficher le quota Claude (lit le jeton de Claude Code) */
   showQuota: boolean;
+  /** largeur du panneau (300–600 px), réglée en tirant son bord gauche */
+  panelWidth: number;
 }
 
 export interface QuotaLimit {
@@ -256,5 +258,7 @@ export interface FmaApi {
   resize(height: number): void;
   wantFocus(): void;
   installUpdate(): void;
+  /** largeur du panneau ; done = fin du glisser (mémorisation) */
+  setWidth(width: number, done: boolean): void;
   checkUpdate(): void;
 }

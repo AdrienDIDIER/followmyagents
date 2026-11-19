@@ -6,6 +6,8 @@ import { BrowserWindow, screen, type Rectangle } from "electron";
 import path from "node:path";
 
 export const PANEL_WIDTH = 320;
+export const MIN_WIDTH = 300;
+export const MAX_WIDTH = 600;
 const MARGIN = 8;
 
 export type OpenReason = "auto" | "click" | "shortcut";
@@ -16,6 +18,8 @@ export interface PanelOptions {
   rendererFile: string;
   getTrayBounds: () => Rectangle | null;
   detached: () => boolean;
+  /** largeur choisie par l'utilisateur (poignée du bord gauche) */
+  width: () => number;
   detachedPos: () => { x: number; y: number } | undefined;
   onMoved: (pos: { x: number; y: number }) => void;
   onHidden: () => void;
@@ -118,7 +122,7 @@ export class Panel {
     const disp = this.display();
     const wa = disp.workArea;
     const height = Math.min(this.contentHeight, Math.floor(wa.height * 0.7));
-    const width = PANEL_WIDTH;
+    const width = clamp(Math.round(this.o.width()), MIN_WIDTH, MAX_WIDTH);
     if (this.o.detached()) {
       const pos = this.o.detachedPos();
       if (pos) {
@@ -135,7 +139,10 @@ export class Panel {
     let x: number;
     let y: number;
     if (tb && tb.width > 0) {
-      x = Math.round(tb.x + tb.width / 2 - width / 2);
+      // bord DROIT fixe (celui de la largeur par défaut centrée sous l'icône) : élargir
+      // avec la poignée gauche étend le panneau vers la gauche
+      const right = Math.min(Math.round(tb.x + tb.width / 2 + PANEL_WIDTH / 2), wa.x + wa.width - MARGIN);
+      x = right - width;
       const trayInBottomHalf = tb.y + tb.height / 2 > wa.y + wa.height / 2;
       y = trayInBottomHalf ? wa.y + wa.height - height - MARGIN : Math.max(wa.y, tb.y + tb.height) + 4;
     } else {
@@ -143,7 +150,7 @@ export class Panel {
       x = wa.x + wa.width - width - MARGIN;
       y = this.isMac ? wa.y + 4 : wa.y + wa.height - height - MARGIN;
     }
-    x = clamp(x, wa.x + MARGIN, wa.x + wa.width - width - MARGIN);
+    x = clamp(x, wa.x + MARGIN, Math.max(wa.x + MARGIN, wa.x + wa.width - width - MARGIN));
     y = clamp(y, wa.y, wa.y + wa.height - height);
     return { x, y, width, height };
   }

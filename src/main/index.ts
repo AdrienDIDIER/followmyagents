@@ -18,7 +18,7 @@ import {
   todoToolsEnabled,
   uninstallHooks,
 } from "./installer";
-import { Panel, rendererPaths } from "./panel";
+import { MAX_WIDTH, MIN_WIDTH, Panel, rendererPaths } from "./panel";
 import { trayImage } from "./tray-icon";
 import { codexSessionUri, jumpToSession, listVsCodeWindowTitles } from "./vscode";
 import { readIdeWindows } from "./ide";
@@ -518,6 +518,7 @@ async function start() {
     rendererUrl: process.env.ELECTRON_RENDERER_URL,
     getTrayBounds: () => tray?.getBounds() ?? null,
     detached: () => cfg.prefs.detached,
+    width: () => cfg.prefs.panelWidth ?? 320,
     detachedPos: () => cfg.detachedPos,
     onMoved: (pos) => {
       cfg.detachedPos = pos;
@@ -610,6 +611,20 @@ async function start() {
   ipcMain.on("resize", (_e, h: number) => panel.setContentHeight(h));
   ipcMain.on("want-focus", () => panel.takeFocus());
   ipcMain.on("update-install", () => void confirmUpdate());
+  ipcMain.on("set-width", (_e, w: number, done: boolean) => {
+    const width = Math.max(MIN_WIDTH, Math.min(MAX_WIDTH, Math.round(Number(w) || 320)));
+    const old = cfg.prefs.panelWidth ?? 320;
+    if (cfg.prefs.detached && cfg.detachedPos) {
+      // panneau détaché : le bord droit reste en place
+      cfg.detachedPos = { ...cfg.detachedPos, x: cfg.detachedPos.x + old - width };
+    }
+    cfg.prefs = { ...cfg.prefs, panelWidth: width };
+    panel.place();
+    if (done) {
+      saveConfig(cfg, app.getPath("userData"));
+      pushSnapshot();
+    }
+  });
   ipcMain.on("update-check", () => void checkUpdate(true));
   ipcMain.on("context-menu", () => trayMenu().popup({ window: panel.win }));
 

@@ -518,3 +518,15 @@ describe("Codex", () => {
     await expect(result).resolves.toBeNull(); // rend la main au dialogue de VS Code
   });
 });
+
+describe("agents internes de Claude Code", () => {
+  it("SubagentStart / SubagentStop sans agent_type (suggestions de prompt…) sont ignorés", () => {
+    ev("UserPromptSubmit", { prompt: "go" });
+    ev("SubagentStart", { agent_id: "internal-1", agent_type: "" });
+    ev("SubagentStop", { agent_id: "internal-1", agent_type: "", last_assistant_message: "publie la 0.3.0" });
+    ev("SubagentStop", { agent_id: "internal-2", agent_type: "", last_assistant_message: "vas-y" });
+    expect(store.getSession("s1")!.subagents).toEqual([]);
+    ev("SubagentStart", { agent_id: "real", agent_type: "Explore" });
+    expect(store.getSession("s1")!.subagents.map((a) => a.type)).toEqual(["Explore"]);
+  });
+});

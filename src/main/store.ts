@@ -213,6 +213,9 @@ export class SessionStore {
   private subagentFor(s: Session, ev: HookInput): Subagent | undefined {
     const id = typeof ev.agent_id === "string" && ev.agent_id ? ev.agent_id : undefined;
     if (!id) return undefined;
+    // agent_type vide : agent INTERNE de Claude Code (suggestions de prompt, /btw…),
+    // pas un sous-agent lancé par l'agent (doc des hooks, SubagentStop) → ignoré
+    if (ev.agent_type === "" && !s.subagents.some((x) => x.id === id)) return undefined;
     let a = s.subagents.find((x) => x.id === id);
     if (!a) {
       a = { id, type: ev.agent_type || "sous-agent", startedAt: this.now(), status: "running" };
@@ -401,6 +404,7 @@ export class SessionStore {
         }
         break;
       case "SubagentStart": {
+        if (ev.agent_type === "") break; // agent interne
         const a = this.subagentFor(s, ev);
         if (a) {
           a.status = "running";
@@ -409,6 +413,7 @@ export class SessionStore {
         break;
       }
       case "SubagentStop": {
+        if (ev.agent_type === "" && !s.subagents.some((x) => x.id === ev.agent_id)) break; // agent interne
         const a = this.subagentFor(s, ev);
         if (a) {
           a.status = "done";

@@ -419,6 +419,23 @@ try {
     await shot("15-mise-a-jour");
   });
 
+  await check("largeur réglable : bornée à 300–600 px, mémorisée, bord droit fixe", async () => {
+    const b0 = await app.evaluate(() => globalThis.__fma.panel.win.getBounds());
+    await page.evaluate(() => window.fma.setWidth(480, true));
+    await sleep(300);
+    const b1 = await app.evaluate(() => globalThis.__fma.panel.win.getBounds());
+    assert.equal(b1.width, 480);
+    assert.equal(b1.x + b1.width, b0.x + b0.width, "le bord droit doit rester en place");
+    await page.screenshot({ path: path.join(shots, "19-panneau-large.png") });
+    await page.evaluate(() => window.fma.setWidth(9999, true));
+    await sleep(200);
+    assert.equal((await app.evaluate(() => globalThis.__fma.panel.win.getBounds())).width, 600);
+    const cfg = JSON.parse(fs.readFileSync(path.join(userData, "config.json"), "utf8"));
+    assert.equal(cfg.prefs.panelWidth, 600);
+    await page.evaluate(() => window.fma.setWidth(320, true));
+    await sleep(200);
+  });
+
   await check("bouton son : préférence mémorisée", async () => {
     await page.getByRole("button", { name: "Activer le son", exact: true }).click();
     await sleep(200);

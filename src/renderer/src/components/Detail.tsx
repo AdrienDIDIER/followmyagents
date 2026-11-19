@@ -1,4 +1,5 @@
 // Vue détail (F5/F6, BRIEF §3.4) : grande mascotte, progression, étapes, Terminal.
+import { useState } from "react";
 import type { Session } from "@shared/types";
 import { Mascot } from "./Mascot";
 import { progress, Ring } from "./Ring";
@@ -10,7 +11,11 @@ export function Detail({ session: s, now, onJump }: { session: Session; now: num
   const p = progress(s);
   const sub = subtitleOf(s);
   const bg = backgroundOf(s);
-  const doneSubs = s.subagents.filter((a) => a.status === "done").sort((a, b) => (b.endedAt ?? 0) - (a.endedAt ?? 0));
+  const doneSubs = s.subagents
+    .filter((a) => a.status === "done")
+    .sort((a, b) => (b.endedAt ?? 0) - (a.endedAt ?? 0))
+    .slice(0, 3);
+  const [fullCmd, setFullCmd] = useState(false);
   const flash = s.flash && s.flash.until > now ? s.flash : undefined;
   return (
     <div data-testid="detail">
@@ -132,7 +137,13 @@ export function Detail({ session: s, now, onJump }: { session: Session; now: num
           <div className="lbl">
             <IconTerminal /> Terminal
           </div>
-          <div className="c">{s.lastCommand.command}</div>
+          <div
+            className={`c${fullCmd ? "" : " clamp"}`}
+            title={fullCmd ? "Cliquer pour réduire" : "Cliquer pour tout afficher"}
+            onClick={() => setFullCmd((v) => !v)}
+          >
+            {s.lastCommand.command}
+          </div>
           {s.lastCommand.outputTail.map((l, i) => (
             <div key={i} className={`o${s.lastCommand?.failed ? " fail" : ""}`}>
               {l}

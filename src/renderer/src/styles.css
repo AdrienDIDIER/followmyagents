@@ -119,6 +119,21 @@ input:focus-visible,
   scrollbar-color: var(--fill-2) transparent;
 }
 
+/* poignée de redimensionnement (bord gauche) */
+.resize-handle {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 6px;
+  cursor: ew-resize;
+  z-index: 5;
+  -webkit-app-region: no-drag;
+}
+.resize-handle:hover {
+  background: linear-gradient(to right, var(--fill-2), transparent);
+}
+
 /* ---------- en-tête ---------- */
 .head {
   display: flex;
@@ -929,6 +944,15 @@ input:focus-visible,
   color: var(--text-1);
   white-space: pre-wrap;
   word-break: break-all;
+}
+.term .c.clamp {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.term .c {
+  cursor: pointer;
 }
 .term .c::before {
   content: "$ ";

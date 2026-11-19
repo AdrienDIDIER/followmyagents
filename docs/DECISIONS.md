@@ -143,3 +143,9 @@ Format : **choix** · alternatives · raison.
 - **Offre gratuite Codex** (constaté le 2026-11-19 via `account/rateLimits/read` et `account/read`) : une seule fenêtre de 30 jours, pas de fenêtre de 5 h. Les offres payantes déclarent en général 5 h + semaine ; l'app affiche ce que Codex renvoie.
 - **Rythme** : toutes les 5 min et à l'ouverture du panneau (si > 2 min). Rien n'est affiché si Codex n'est pas installé.
 - **Binaire** : extension VS Code `openai.chatgpt-*/bin/<plateforme>/codex`, puis app Codex, Homebrew, npm.
+
+## D26 — Lisibilité (retour utilisateur)
+- **Agents internes ignorés** : Claude Code émet `SubagentStart/Stop` pour ses agents internes (suggestions de prompt, `/btw`) avec `agent_type` vide. Ils apparaissaient comme « Sous-agent · publie la 0.3.0 ». Ils sont désormais ignorés.
+- **Bloc Terminal** : commande limitée à 3 lignes, un clic l'affiche en entier.
+- **Sous-agents terminés** : seuls les 3 derniers sont affichés dans la vue détail.
+- **Largeur réglable** : poignée sur le bord gauche du panneau (300–600 px), double-clic pour revenir à 320 px. Le bord droit reste fixe. La largeur est mémorisée (`prefs.panelWidth`). Vérifié avec un vrai glisser à la souris (`e2e/native.mjs`).

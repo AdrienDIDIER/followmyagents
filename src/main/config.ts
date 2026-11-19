@@ -28,6 +28,7 @@ export const DEFAULT_PREFS: Prefs = {
   codexPendingTimeoutSec: 60,
   autoUpdateCheck: true,
   showQuota: true,
+  panelWidth: 320,
 };
 
 /** Même dossier que app.getPath("userData") d'Electron. */

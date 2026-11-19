@@ -128,7 +128,11 @@ try {
     await sleep(300);
     assert.equal(foreground(), before);
   });
-  await check("raccourci global Ctrl+Alt+A : ouvre le panneau, Entrée autorise la 1re demande, Échap ferme", async () => {
+  // Une app FollowMyAgents installée qui tourne détient déjà le raccourci global :
+  // le test enverrait alors Ctrl+Alt+A / Entrée à la VRAIE app. On le saute.
+  const otherInstance = ps("(Get-Process FollowMyAgents -ErrorAction SilentlyContinue | Measure-Object).Count") !== "0";
+  if (otherInstance) console.log("⏭️  raccourci global : sauté (une app FollowMyAgents installée tourne et détient Ctrl+Alt+A)");
+  if (!otherInstance) await check("raccourci global Ctrl+Alt+A : ouvre le panneau, Entrée autorise la 1re demande, Échap ferme", async () => {
     const req = post("/hook/permission", {
       session_id: "scout",
       cwd: "C:\\work\\scout",
@@ -181,6 +185,22 @@ try {
     await sleep(300);
     const b3 = await app.evaluate(() => globalThis.__fma.panel.win.getBounds());
     assert.deepEqual([b3.x, b3.y], [b0.x, b0.y], "le rattachement doit ramener le panneau sous l'icône");
+  });
+  await check("redimensionner à la vraie souris (bord gauche) : le panneau s'élargit", async () => {
+    await app.evaluate(() => globalThis.__fma.show("click"));
+    await sleep(400);
+    const b0 = await app.evaluate(() => globalThis.__fma.panel.win.getBounds());
+    const hx = Math.round((b0.x + 2) * dpr);
+    const hy = Math.round((b0.y + b0.height / 2) * dpr);
+    ps(
+      `${WIN32} $p = New-Object N+POINT; [void][N]::GetCursorPos([ref]$p); [void][N]::SetCursorPos(${hx}, ${hy}); Start-Sleep -Milliseconds 150; [N]::mouse_event(2,0,0,0,[UIntPtr]::Zero); ` +
+        `for ($i = 1; $i -le 15; $i++) { [void][N]::SetCursorPos(${hx} - 10 * $i, ${hy}); Start-Sleep -Milliseconds 20 }; [N]::mouse_event(4,0,0,0,[UIntPtr]::Zero); Start-Sleep -Milliseconds 300; [void][N]::SetCursorPos($p.X, $p.Y)`,
+    );
+    await sleep(400);
+    const b1 = await app.evaluate(() => globalThis.__fma.panel.win.getBounds());
+    assert.ok(Math.abs(b1.width - (b0.width + 150 / dpr)) <= 6, `largeur ${b0.width} → ${b1.width}`);
+    assert.equal(b1.x + b1.width, b0.x + b0.width, "bord droit déplacé");
+    await page.evaluate(() => window.fma.setWidth(320, true));
   });
 } finally {
   await app.close().catch(() => {});
