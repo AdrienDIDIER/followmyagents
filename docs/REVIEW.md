@@ -36,10 +36,10 @@ Branche `feat/followmyagents` (rien n'a été poussé ni publié).
 
 | Suite | Contenu | Résultat |
 |---|---|---|
-| `npm test` (Vitest) | serveur (token, Origin, requêtes ouvertes, fermeture, Connection: close…), store (états, étapes, permissions, questions, timeouts, secours D5…), installeur (fusion, sauvegarde, idempotence, désinstallation exacte, JSON invalide, BOM, indentation), descriptions, transcripts | ✅ **79/79** |
-| `npm run e2e` | app Electron pilotée par Playwright, vrais hooks HTTP : ouverture auto sans focus, Autoriser / Refuser / Toujours, fermeture auto, reste ouvert après un clic, « répondu dans VS Code », questions (simple, libre, multiples + multiSelect), Répondre dans VS Code (+ jump), vue détail, ×, son, Échap, reduced-motion, aucune installation implicite | ✅ **20/20** |
+| `npm test` (Vitest) | serveur (token, Origin, requêtes ouvertes, fermeture, Connection: close…), store (états, étapes, permissions, questions, timeouts, secours D5…), installeur (fusion, sauvegarde, idempotence, désinstallation exacte, JSON invalide, BOM, indentation), descriptions, transcripts, jump VS Code (macOS/Windows, commandes simulées), séquence réelle sous-agent + arrière-plan rejouée | ✅ **91/91** |
+| `npm run e2e` | app Electron pilotée par Playwright, vrais hooks HTTP : ouverture auto sans focus, Autoriser / Refuser / Toujours, fermeture auto, reste ouvert après un clic, « répondu dans VS Code », questions (simple, libre, multiples + multiSelect), Répondre dans VS Code (+ jump), vue détail, sous-agents et tâches en arrière-plan, ×, son, Échap, reduced-motion, aucune installation implicite | ✅ **21/21** |
 | `npm run e2e:native` | Windows : focus jamais volé (fenêtre au premier plan vérifiée), capture réelle du verre, **vrai clic souris** sur le panneau non focalisable, raccourci global + Entrée + Échap, détacher à la souris + position mémorisée + rattacher | ✅ **5/5** |
-| `npm run e2e:live` | **vraies sessions Claude Code** (haiku) dans `./sandbox`, hooks écrits par l'installeur (CLI) : permission autorisée → commande exécutée et dialogue hôte annulé ; refusée → non exécutée ; question → l'agent reçoit la bonne option ; réponse côté hôte → la demande disparaît du widget ; 4 sessions en parallèle ; désinstallation | ✅ **6/6** |
+| `npm run e2e:live` | **vraies sessions Claude Code** (haiku) dans `./sandbox`, hooks écrits par l'installeur (CLI) : permission autorisée → commande exécutée et dialogue hôte annulé ; refusée → non exécutée ; question → l'agent reçoit la bonne option ; réponse côté hôte → la demande disparaît du widget ; commande + sous-agent en arrière-plan suivis jusqu'à leur fin ; 4 sessions en parallèle ; désinstallation | ✅ **7/7** |
 
 Captures : `docs/screenshots/` (`maquette-A.png` = rendu de la maquette, à comparer avec `02-permission.png`).
 
@@ -85,6 +85,7 @@ npm start
 11. **Bouton ↗ avec 2 fenêtres VS Code** ouvertes sur deux dossiers différents, chacune avec une session. Réduire VS Code. ↗ sur la session du dossier B → la fenêtre B passe devant, sur l'onglet de cette session. Idem pour A.
 12. **4 sessions** en parallèle, VS Code réduit → 4 lignes à jour, la mascotte de chacune selon son état, l'anneau seulement si l'agent a une liste d'étapes.
 13. **Vue détail** : clic sur une ligne → étapes (si présentes), bloc Terminal (dernière commande + 3 lignes), « ‹ Agents » pour revenir, mini-mascottes pour passer d'un agent à l'autre.
+13 bis. **Sous-agents / arrière-plan** : demander à l'agent « lance `sleep 30` en arrière-plan et un sous-agent en arrière-plan qui résume le README, puis rends la main ». → La ligne affiche « En arrière-plan · … » avec une mascotte active et « 2 en fond ». La vue détail liste le sous-agent (son action en cours) et la commande. Le résultat du sous-agent apparaît quand il a fini, et tout disparaît de « en fond » à la fin.
 14. **Raccourci** `Ctrl+Alt+A` (macOS : `Cmd+Option+A`) pendant qu'une demande attend → le panneau s'ouvre avec le focus sur la demande. `Entrée` = Autoriser, `Échap` = Refuser. Sur une question : `1`–`9` puis `Entrée`.
 15. **Détacher** (2e bouton de l'en-tête) → glisser le panneau par son en-tête n'importe où. Fermer / rouvrir : même position. « Rattacher » → retour près de l'icône.
 16. **Son** : bouton haut-parleur → un carillon discret à l'arrivée d'une demande. Préférence conservée après redémarrage.
@@ -99,7 +100,8 @@ npm start
 3. **Verre** : le bureau doit être flouté derrière le panneau, **coins arrondis propres** (pas de coin carré « vitré » qui dépasse). Si le rendu n'est pas bon : essayer `FMA_VIBRANCY=hud npm start`, et me le signaler (réglages dans `src/main/panel.ts`).
 4. Le panneau ne prend pas le focus quand il s'ouvre seul (NSPanel `type: "panel"`), et un clic sur « Autoriser » ne fait pas quitter l'éditeur.
 5. **Espaces** : changer de bureau virtuel → le panneau reste visible. Mettre une app en plein écran → le panneau reste par-dessus.
-6. **Jump** : ↗ fonctionne même si `code` n'est pas dans le PATH (repli sur `open -a "Visual Studio Code"`).
+6. **Jump (↗)** : au 1er usage, macOS demande d'autoriser FollowMyAgents dans **Réglages Système → Confidentialité et sécurité → Accessibilité** (un message l'explique). Activer l'option, puis réessayer ↗.
+   → Avec 2 fenêtres VS Code (dossiers A et B) : ↗ sur une session de B fait passer **la fenêtre B** devant (même réduite dans le Dock), sur l'onglet de la session. Si ça ne marche pas : `FMA_DEBUG=1 npm start` affiche `focus-window-mac : …` (titre trouvé, ou erreur), et `osascript -e 'tell application "System Events" to get name of every window of process "Code"'` montre les titres réels des fenêtres. Envoyez-moi les deux.
 7. **Notifications** : macOS demande l'autorisation à la 1re notification. Une app non signée peut ne pas apparaître dans Réglages > Notifications : à vérifier.
 8. Relancer la batterie automatisée : `npm test && npm run e2e`, puis `npm run e2e:live` (le test natif est propre à Windows).
 9. `npm run dist:mac` → le `.dmg` s'installe et l'app se lance (clic droit → Ouvrir).
@@ -144,12 +146,15 @@ Détail dans [`docs/DECISIONS.md`](DECISIONS.md). Les plus structurantes :
 - **D11** — Titres = titre de l'onglet VS Code lu dans le transcript (pas d'appel à Haiku).
 - **D12** — Panneau non focalisable sous Windows, focalisable seulement pour la saisie clavier.
 - **D15** — Aucune installation automatique des hooks.
+- **D18** — Jump macOS : AppleScript (accès Accessibilité) pour ramener la bonne fenêtre (correctif après retour).
+- **D19** — Sous-agents et tâches en arrière-plan suivis (correctif après retour).
 
 ---
 
 ## 6. Problèmes connus, limites, pistes
 
-- **macOS non testé** (pas de Mac) : risques principaux sur le rendu du verre et des coins (`src/main/panel.ts`), la position sous l'icône et le type `panel`.
+- **macOS non testé** (pas de Mac) : risques principaux sur le rendu du verre et des coins (`src/main/panel.ts`), la position sous l'icône, le type `panel` et l'AppleScript du jump (`resources/scripts/focus-window-mac.applescript`, D18).
+- **Jump macOS sans Accessibilité** : VS Code est seulement activé, l'onglet s'ouvre dans la fenêtre active (qui n'est pas forcément la bonne).
 - **Listes d'étapes rares** : dans Claude Code 2.1.322, `TodoWrite` / `TaskCreate` sont désactivés par défaut. La plupart des sessions n'ont donc pas d'anneau (indicateur d'activité + temps écoulé à la place). Le format de `TaskCreate` / `TaskUpdate` est déduit, pas observé.
 - **Sessions reprises au démarrage** : impossible de savoir si une session est encore ouverte. Une session fermée depuis peu apparaît « en pause » jusqu'à 30 min après sa dernière activité (bouton × pour la retirer).
 - **Hooks et sessions déjà ouvertes** : Claude Code peut ne prendre les nouveaux hooks qu'au démarrage d'une session.

@@ -75,6 +75,12 @@ En `claude -p` simple, AskUserQuestion n'est **pas disponible**. Avec l'imitatio
 5. Le token passé en en-tête est masqué (`[REDACTED]`) dans les journaux de debug de Claude Code.
 6. Champs supplémentaires observés : `prompt_id`, `effort.level`, `permission_mode` ; `Stop` porte `last_assistant_message`, `background_tasks`, `session_crons`.
 
+### (f) Sous-agents et tâches en arrière-plan (ajout, après retour utilisateur) : ✅
+
+Session réelle avec une commande Bash `run_in_background` et un sous-agent `run_in_background`. Formats observés : voir `docs/DECISIONS.md` (D19) et la fixture `tests/fixtures/background-subagent.json`, rejouée dans les tests unitaires.
+
+Note : les outils de test (serveur Phase 0, bac à sable) utilisent désormais le port **47830**, pour ne jamais entrer en conflit avec la vraie app (47821).
+
 ## Journaux bruts
 
 `phase0/logs/` (non versionné) : `a-allow.jsonl`, `a-deny.jsonl`, `b1…b3-*.jsonl`, `q1…q3-*.jsonl`, `q-mode-*.jsonl`, `e-*.jsonl`.

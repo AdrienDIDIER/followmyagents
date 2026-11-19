@@ -1,5 +1,5 @@
 // Process principal : serveur de hooks + store + icône système + panneau.
-import { app, dialog, globalShortcut, ipcMain, Menu, Notification, shell, Tray } from "electron";
+import { app, dialog, globalShortcut, ipcMain, Menu, Notification, shell, systemPreferences, Tray } from "electron";
 import path from "node:path";
 import fs from "node:fs";
 import type { AppSnapshot, PendingAnswer, Prefs } from "@shared/types";
@@ -82,7 +82,9 @@ function pushSnapshot() {
 function updateTray() {
   if (!tray) return;
   const waiting = store.getPendings().length;
-  const working = store.getSessions().some((s) => s.state === "working");
+  const working = store
+    .getSessions()
+    .some((s) => s.state === "working" || (s.state === "idle" && (s.background.length > 0 || s.subagents.some((a) => a.status === "running"))));
   const face = waiting > 0 ? "alert" : working ? "work" : "idle";
   tray.setImage(trayImage(face, waiting));
   if (process.platform === "darwin") tray.setTitle(waiting > 0 ? String(waiting) : "", { fontType: "monospacedDigit" });
@@ -364,6 +366,23 @@ async function start() {
   }
 }
 
+// macOS : choisir la bonne fenêtre VS Code demande l'accès « Accessibilité » (une fois).
+let accessibilityAsked = false;
+function askAccessibility() {
+  if (process.platform !== "darwin" || accessibilityAsked) return;
+  accessibilityAsked = true;
+  // ouvre la demande système (ajoute l'app à la liste Accessibilité)
+  systemPreferences.isTrustedAccessibilityClient(true);
+  void dialog.showMessageBox({
+    type: "info",
+    title: "FollowMyAgents",
+    message: "Autoriser FollowMyAgents à choisir la fenêtre VS Code",
+    detail:
+      "Pour ramener la bonne fenêtre VS Code au premier plan, activez FollowMyAgents dans Réglages Système → Confidentialité et sécurité → Accessibilité, puis réessayez ↗.\n\n" +
+      "En attendant, VS Code est seulement activé : l'onglet s'ouvre dans la fenêtre active.",
+  });
+}
+
 let lastJump: { sessionId: string; cwd: string } | null = null;
 async function jump(sessionId: string) {
   const s = store.getSession(sessionId);
@@ -371,7 +390,13 @@ async function jump(sessionId: string) {
   lastJump = { sessionId: s.id, cwd: s.cwd };
   if (process.env.FMA_NO_JUMP === "1") return; // tests : pas d'action sur le vrai VS Code
   try {
-    await jumpToSession(s.id, s.cwd, { openExternal: (u) => shell.openExternal(u), scriptsDir: scriptsDir(), log });
+    const outcome = await jumpToSession(s.id, s.cwd, {
+      openExternal: (u) => shell.openExternal(u),
+      scriptsDir: scriptsDir(),
+      log,
+      onAccessibilityDenied: askAccessibility,
+    });
+    log(`jump ${s.id} → ${outcome}`);
   } catch (e) {
     log(`jump: ${(e as Error).message}`);
   }

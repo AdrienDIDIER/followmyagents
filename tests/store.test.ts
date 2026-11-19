@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { SessionStore, type ChangeReason } from "../src/main/store";
+import { SessionStore, parseTaskNotification, type ChangeReason } from "../src/main/store";
+import fixture from "./fixtures/background-subagent.json";
 
 let t = 1_000_000;
 const now = () => t;
@@ -141,12 +142,35 @@ describe("sessions", () => {
     expect(s.subtitle).toBe("Done");
   });
 
-  it("sous-agents : SubagentStart / SubagentStop", () => {
+  it("sous-agents : SubagentStart / SubagentStop (résultat conservé)", () => {
     ev("SubagentStart", { agent_id: "a1", agent_type: "Explore" });
     ev("SubagentStart", { agent_id: "a2", agent_type: "general-purpose" });
     expect(store.getSession("s1")!.subagents.map((a) => a.type)).toEqual(["Explore", "general-purpose"]);
-    ev("SubagentStop", { agent_id: "a1" });
-    expect(store.getSession("s1")!.subagents.map((a) => a.id)).toEqual(["a2"]);
+    ev("SubagentStop", { agent_id: "a1", agent_type: "Explore", last_assistant_message: "3 fichiers trouvés" });
+    const subs = store.getSession("s1")!.subagents;
+    expect(subs.find((a) => a.id === "a1")).toMatchObject({ status: "done", lastMessage: "3 fichiers trouvés" });
+    expect(subs.find((a) => a.id === "a2")).toMatchObject({ status: "running" });
+  });
+
+  it("sous-agent au premier plan : son action préfixe le sous-titre du parent", () => {
+    ev("UserPromptSubmit", { prompt: "go" });
+    ev("SubagentStart", { agent_id: "a1", agent_type: "Explore" });
+    ev("PreToolUse", { agent_id: "a1", agent_type: "Explore", tool_name: "Read", tool_input: { file_path: "/p/config.ts" } });
+    const s = store.getSession("s1")!;
+    expect(s.subtitle).toBe("Explore · Lecture de config.ts");
+    expect(s.subagents[0].action).toBe("Lecture de config.ts");
+    // fin de tour : un sous-agent au premier plan est terminé
+    ev("Stop", { last_assistant_message: "ok", background_tasks: [] });
+    expect(store.getSession("s1")!.subagents[0].status).toBe("done");
+  });
+
+  it("ne garde que les 5 derniers sous-agents terminés", () => {
+    for (let i = 0; i < 8; i++) {
+      ev("SubagentStart", { agent_id: `a${i}`, agent_type: "Explore" });
+      t += 1;
+      ev("SubagentStop", { agent_id: `a${i}`, agent_type: "Explore" });
+    }
+    expect(store.getSession("s1")!.subagents.map((a) => a.id)).toEqual(["a3", "a4", "a5", "a6", "a7"]);
   });
 
   it("attribue des couleurs distinctes, l'orange en dernier", () => {
@@ -183,6 +207,66 @@ describe("sessions", () => {
     expect(store.getSessions()).toHaveLength(0);
     ev("UserPromptSubmit", { prompt: "again" });
     expect(store.getSession("s1")!.state).toBe("working");
+  });
+});
+
+describe("arrière-plan (séquence réelle capturée, Claude Code 2.1.322)", () => {
+  it("commande et sous-agent en arrière-plan : suivis jusqu'à leur fin", () => {
+    const events = fixture as Record<string, unknown>[];
+    const at = (pred: (e: Record<string, unknown>, i: number) => boolean) => events.findIndex(pred);
+    const play = (from: number, to: number) => {
+      for (const e of events.slice(from, to)) {
+        t += 100;
+        store.ingest(e);
+      }
+    };
+    // jusqu'au 1er Stop (STARTED) inclus
+    const firstStop = at((e) => e.hook_event_name === "Stop");
+    play(0, firstStop + 1);
+    let s = store.getSession("bg")!;
+    expect(s.state).toBe("idle");
+    expect(s.background.map((b) => b.type).sort()).toEqual(["shell", "subagent"]);
+    expect(s.background.find((b) => b.type === "shell")?.command).toBe("ping -n 40 127.0.0.1 > ping.txt");
+    expect(s.subagents).toHaveLength(1);
+    expect(s.subagents[0]).toMatchObject({ type: "general-purpose", status: "running", background: true });
+    expect(s.lastCommand?.running).toBe(true);
+
+    // le sous-agent travaille pendant que le parent est en pause
+    const subStop = at((e) => e.hook_event_name === "SubagentStop");
+    play(firstStop + 1, subStop);
+    s = store.getSession("bg")!;
+    expect(s.state).toBe("idle");
+    expect(s.subtitle).toBe("STARTED");
+    expect(s.subagents[0].action).toBe("Lecture de README.md");
+
+    // fin du sous-agent : résultat conservé, plus que la commande en arrière-plan
+    play(subStop, subStop + 1);
+    s = store.getSession("bg")!;
+    expect(s.subagents[0]).toMatchObject({ status: "done" });
+    expect(s.subagents[0].lastMessage).toMatch(/README\.md/);
+    expect(s.background.map((b) => b.type)).toEqual(["shell"]);
+
+    // fin de la commande : tour relancé par <task-notification>, puis Stop sans tâche
+    const lastPrompt = events.length - 1 - [...events].reverse().findIndex((e) => e.hook_event_name === "UserPromptSubmit");
+    play(subStop + 1, lastPrompt + 1);
+    s = store.getSession("bg")!;
+    expect(s.background).toEqual([]);
+    expect(s.state).toBe("working");
+    expect(s.subtitle).toMatch(/^Reprend : Background command/);
+    expect(s.title).not.toMatch(/task-notification/);
+    play(lastPrompt + 1, events.length);
+    s = store.getSession("bg")!;
+    expect(s.state).toBe("done");
+    expect(s.background).toEqual([]);
+  });
+
+  it("parseTaskNotification", () => {
+    expect(parseTaskNotification("hello")).toBeNull();
+    expect(
+      parseTaskNotification(
+        '<task-notification>\n<task-id>x1</task-id>\n<status>completed</status>\n<summary>Agent "A" finished</summary>\n</task-notification>',
+      ),
+    ).toEqual({ taskId: "x1", status: "completed", summary: 'Agent "A" finished' });
   });
 });
 

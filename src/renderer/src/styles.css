@@ -795,6 +795,86 @@ input:focus-visible,
 .term .o.fail {
   color: color-mix(in srgb, var(--danger) 80%, white);
 }
+.tasks {
+  border-top: 0.5px solid var(--separator);
+  padding: 8px 0 6px;
+  margin-bottom: 4px;
+}
+.tasks > .lbl {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-3);
+  padding: 0 6px 6px;
+}
+.task {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 4px 6px;
+}
+.task .ico,
+.task .mascot {
+  width: 14px;
+  flex: none;
+  margin-top: 1px;
+  color: var(--text-3);
+}
+.task .ico svg {
+  width: 13px;
+  height: 13px;
+}
+.task .txt {
+  flex: 1;
+  min-width: 0;
+}
+.task .t {
+  font-size: 12.5px;
+  font-weight: 500;
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.task .t .desc {
+  font-weight: 400;
+  color: var(--text-2);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.task .tag {
+  font-size: 10.5px;
+  font-weight: 500;
+  color: var(--text-3);
+}
+.task .when {
+  margin-left: auto;
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--text-3);
+  font-variant-numeric: tabular-nums;
+}
+.task .s {
+  font-size: 11.5px;
+  color: var(--text-2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.task .s.mono {
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+.task .s.res {
+  white-space: normal;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  line-height: 1.35;
+}
+.task.done .t {
+  color: var(--text-2);
+}
 .msg {
   background: var(--fill-1);
   border-radius: var(--radius-block);

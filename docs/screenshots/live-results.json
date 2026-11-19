@@ -17,6 +17,10 @@
   ],
   [
     "✅",
+    "vraie session : commande + sous-agent en arrière-plan suivis jusqu'à leur fin"
+  ],
+  [
+    "✅",
     "4 sessions en parallèle : 4 lignes à jour, latence hook → panneau < 1 s"
   ],
   [

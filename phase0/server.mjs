@@ -18,7 +18,7 @@ const logDir = path.join(here, "logs");
 fs.mkdirSync(logDir, { recursive: true });
 const logFile = path.join(logDir, "events.jsonl");
 const policyFile = path.join(logDir, "policy.json");
-const PORT = Number(process.argv[2] || process.env.FMA_PORT || 47821);
+const PORT = Number(process.argv[2] || process.env.FMA_PORT || 47830); // ≠ 47821 (port de la vraie app)
 const TOKEN = process.env.FMA_TOKEN || "sandbox-token";
 
 function policy() {

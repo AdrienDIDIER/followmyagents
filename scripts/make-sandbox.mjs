@@ -14,7 +14,7 @@ import { fileURLToPath } from "node:url";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const sandbox = path.join(root, "sandbox");
-const port = Number(process.argv[2] || 47821);
+const port = Number(process.argv[2] || 47830); // ≠ 47821 (port de la vraie app)
 const token = process.argv[3] || "sandbox-token";
 
 const base = `http://127.0.0.1:${port}`;

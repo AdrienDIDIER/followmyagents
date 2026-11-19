@@ -75,3 +75,24 @@ Format : **choix** · alternatives · raison.
 ## D17 — Mode `dontAsk` et outils de liste d'étapes
 - En mode `dontAsk`, AskUserQuestion est refusé d'office par Claude Code : il n'y a rien à afficher.
 - `TodoWrite` / `TaskCreate` sont désactivés par défaut dans la version testée (voir phase0 (e)). L'anneau de progression n'apparaît donc que si l'utilisateur les active (ex. `CLAUDE_CODE_ENABLE_TODO_TOOLS=1`). Sinon : indicateur d'activité + temps écoulé (§3.1.4).
+
+## D18 — Jump macOS : AppleScript (Accessibilité) au lieu de `code <dossier>`
+- **Constat (retour utilisateur)** : sur Mac, ↗ ne ramenait pas la fenêtre VS Code déjà ouverte. `code <dossier>` ne réutilise une fenêtre que si elle est ouverte **exactement** sur ce dossier. Lancé depuis le terminal intégré de VS Code, `code` hérite aussi de `VSCODE_IPC_HOOK_CLI` et parle à la fenêtre de ce terminal. Enfin, l'URI peut arriver avant que la fenêtre soit active.
+- **Choix** : `resources/scripts/focus-window-mac.applescript` cherche VS Code par son identifiant d'app (`com.microsoft.VSCode`, ou Insiders), puis la fenêtre dont le titre contient le dossier (segment exact « … — dossier » d'abord). Il la sort du Dock si elle est réduite, puis `AXRaise` + `frontmost`.
+  - Dossier non ouvert / VS Code fermé → `code <dossier>` (ou `open -a`), puis 1,2 s d'attente avant l'URI.
+  - Accès « Accessibilité » refusé → demande système (`isTrustedAccessibilityClient(true)`) et message une fois par lancement. VS Code est seulement activé (pas d'ouverture de dossier, qui créerait une nouvelle fenêtre).
+  - Toutes les commandes lancées par l'app perdent `ELECTRON_RUN_AS_NODE` et `VSCODE_*`.
+- Limite : non testé sur un vrai Mac (logique couverte par des tests unitaires avec commandes simulées).
+
+## D19 — Sous-agents et tâches en arrière-plan
+- **Formats réels capturés** (Claude Code 2.1.322, fixture `tests/fixtures/background-subagent.json`) :
+  - les outils d'un sous-agent portent `agent_id` / `agent_type` ;
+  - `PostToolUse(Bash)` renvoie `tool_response.backgroundTaskId` quand `run_in_background` ;
+  - `PostToolUse(Agent)` renvoie `{ isAsync: true, agentId }` ;
+  - `Stop` / `SubagentStop` portent `background_tasks: [{ id, type: "shell"|"subagent", status, description, command?, agent_type? }]` (la liste de `SubagentStop` contient encore le sous-agent qui s'arrête) ;
+  - la fin d'une tâche relance un tour via un faux prompt `<task-notification><task-id>…</task-id><status>…</status><summary>…</summary>`.
+- **Choix** :
+  - à `Stop`, les sous-agents et tâches en arrière-plan ne sont plus effacés (c'était un bug). La session est « en pause » mais affichée « En arrière-plan · … » avec une mascotte active et « N en fond » ;
+  - l'action d'un sous-agent préfixe le sous-titre du parent (« Explore · Lecture de config.ts »), sauf si le tour du parent est fini ;
+  - vue détail : section « Sous-agents et tâches » (en cours, commandes en arrière-plan, 5 derniers résultats de sous-agents) ;
+  - un prompt `<task-notification>` ne sert jamais de titre ; il marque la tâche terminée et affiche « Reprend : … ».

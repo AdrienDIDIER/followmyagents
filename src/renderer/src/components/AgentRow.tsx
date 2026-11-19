@@ -6,7 +6,29 @@ import { Activity, progress, Ring } from "./Ring";
 import { IconCheck, IconClose, IconOpen } from "./Icons";
 import { since } from "../format";
 
+/** Sous-agents encore actifs et tâches en arrière-plan d'une session. */
+export function backgroundOf(s: Session) {
+  const subs = s.subagents.filter((a) => a.status === "running");
+  // un sous-agent en arrière-plan figure aussi dans background : on ne le compte qu'une fois
+  const tasks = s.background.filter((b) => !subs.some((a) => a.id === b.id));
+  const count = subs.length + tasks.length;
+  /** le tour est fini mais du travail continue en arrière-plan */
+  const inBackground = s.state === "idle" && count > 0;
+  return { subs, tasks, count, inBackground };
+}
+
+export function agentLabel(type: string): string {
+  if (!type || type === "general-purpose" || type === "sous-agent") return "Sous-agent";
+  return type.split(":").pop()!;
+}
+
 export function subtitleOf(s: Session): { text: string; cls: string } {
+  const bg = backgroundOf(s);
+  if (bg.inBackground) {
+    const a = bg.subs.find((x) => x.action) ?? bg.subs[0];
+    const what = a ? `${agentLabel(a.type)}${a.action ? ` · ${a.action}` : ""}` : bg.tasks[0]?.description;
+    return { text: `En arrière-plan${what ? ` · ${what}` : ""}`, cls: "" };
+  }
   const waiting = s.state === "needs_permission" || s.state === "asks_question";
   if (waiting) return { text: s.subtitle || "Attend ta réponse", cls: "wait" };
   if (s.state === "error") return { text: s.subtitle || "Erreur", cls: "err" };
@@ -33,6 +55,7 @@ export function AgentRow({
 }) {
   const p = progress(s);
   const sub = subtitleOf(s);
+  const bg = backgroundOf(s);
   const flash = s.flash && s.flash.until > now ? s.flash : undefined;
   return (
     <div>
@@ -50,13 +73,13 @@ export function AgentRow({
         data-testid="agent-row"
         data-state={s.state}
       >
-        <Mascot state={s.state} colorIndex={s.colorIndex} size={20} />
+        <Mascot state={bg.inBackground ? "working" : s.state} colorIndex={s.colorIndex} size={20} />
         <div className="txt">
           <div className="t">
             {s.title}
-            {s.subagents.length > 0 && (
-              <span className="subagents" title={s.subagents.map((a) => a.type).join(", ")}>
-                {s.subagents.slice(0, 4).map((a) => (
+            {bg.subs.length > 0 && (
+              <span className="subagents" title={bg.subs.map((a) => agentLabel(a.type)).join(", ")}>
+                {bg.subs.slice(0, 4).map((a) => (
                   <Mascot key={a.id} state="working" colorIndex={s.colorIndex} size={9} animate={false} />
                 ))}
               </span>
@@ -75,10 +98,14 @@ export function AgentRow({
           <div className="meta">
             {p ? (
               <Ring done={p.done} total={p.total} colorIndex={s.colorIndex} />
-            ) : s.state === "working" ? (
+            ) : s.state === "working" || bg.inBackground ? (
               <>
                 {/* heure de début inconnue pour une session reconstruite depuis son transcript */}
-                {!s.reconstructed && <span>{since(s.startedAt, now)}</span>}
+                {bg.inBackground ? (
+                  <span title="Tâches en arrière-plan">{bg.count} en fond</span>
+                ) : (
+                  !s.reconstructed && <span>{since(s.startedAt, now)}</span>
+                )}
                 <Activity />
               </>
             ) : null}

@@ -33,7 +33,30 @@ export interface Flash {
 
 export interface Subagent {
   id: string;
+  /** agent_type : "Explore", "general-purpose"… */
   type: string;
+  startedAt: number;
+  status: "running" | "done";
+  /** lancé en arrière-plan (run_in_background) */
+  background?: boolean;
+  /** description donnée par le parent (outil Agent/Task) */
+  description?: string;
+  /** action en cours, lisible */
+  action?: string;
+  /** résultat final (SubagentStop.last_assistant_message) */
+  lastMessage?: string;
+  endedAt?: number;
+}
+
+/** Tâche en arrière-plan (Stop/SubagentStop.background_tasks, Bash run_in_background). */
+export interface BackgroundTask {
+  id: string;
+  /** "shell", "subagent", "monitor", "workflow"… */
+  type: string;
+  status: string;
+  description: string;
+  command?: string;
+  agentType?: string;
   startedAt: number;
 }
 
@@ -51,6 +74,8 @@ export interface Session {
   lastCommand?: LastCommand;
   lastMessage?: string;
   subagents: Subagent[];
+  /** tâches en arrière-plan encore en cours */
+  background: BackgroundTask[];
   startedAt: number;
   lastEventAt: number;
   /** début de l'attente utilisateur courante (pour le chronomètre) */

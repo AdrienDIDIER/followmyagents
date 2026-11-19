@@ -313,6 +313,43 @@ try {
   await shot("08-detail");
   await page.getByRole("button", { name: "Agents", exact: true }).click();
 
+  // ---- sous-agents et tâches en arrière-plan (format réel, voir tests/fixtures) ----
+  await check("arrière-plan : la ligne indique le travail en fond, la vue détail liste sous-agents et tâches", async () => {
+    await ev("polish", "PostToolUse", {
+      tool_name: "Bash",
+      tool_input: { command: "npm run render:all", description: "Rendu complet", run_in_background: true },
+      tool_response: { stdout: "", stderr: "", backgroundTaskId: "bg1" },
+    });
+    await ev("polish", "PostToolUse", {
+      tool_name: "Agent",
+      tool_input: { description: "Vérifier les sous-titres", subagent_type: "Explore", run_in_background: true },
+      tool_response: { isAsync: true, status: "async_launched", agentId: "ag1" },
+    });
+    await ev("polish", "SubagentStart", { agent_id: "ag1", agent_type: "Explore" });
+    await ev("polish", "SubagentStart", { agent_id: "ag0", agent_type: "general-purpose" });
+    await ev("polish", "SubagentStop", { agent_id: "ag0", agent_type: "general-purpose", last_assistant_message: "Les 7 clips ont la bonne durée." });
+    await ev("polish", "Stop", {
+      last_assistant_message: "Rendu lancé en arrière-plan.",
+      background_tasks: [
+        { id: "bg1", type: "shell", status: "running", description: "Rendu complet", command: "npm run render:all" },
+        { id: "ag1", type: "subagent", status: "running", description: "Vérifier les sous-titres", agent_type: "Explore" },
+      ],
+    });
+    await ev("polish", "PreToolUse", { agent_id: "ag1", agent_type: "Explore", tool_name: "Read", tool_input: { file_path: "C:\\work\\polish\\subs.srt" } });
+    const row = page.locator('[data-testid="agent-row"]', { hasText: "Polish" });
+    await row.locator("text=En arrière-plan · Explore · Lecture de subs.srt").waitFor({ timeout: 2000 });
+    // (Polish a une liste d'étapes : l'anneau reste affiché à droite plutôt que « 2 en fond »)
+    await row.click();
+    await page.waitForSelector('[data-testid="tasks"]');
+    await sleep(300);
+    const txt = await page.locator('[data-testid="tasks"]').innerText();
+    assert.match(txt, /Explore/);
+    assert.match(txt, /npm run render:all/);
+    assert.match(txt, /Les 7 clips ont la bonne durée/);
+    await shot("12-arriere-plan");
+    await page.getByRole("button", { name: "Agents", exact: true }).click();
+  });
+
   // ---- fin de tour, erreur, terminé ----
   await ev("cheat", "Stop", { last_assistant_message: "Le brouillon de la cheat sheet est prêt dans brouillon.md.\nIl reste à valider la section latence." });
   await ev("idea-scout", "SessionEnd", { reason: "other" });

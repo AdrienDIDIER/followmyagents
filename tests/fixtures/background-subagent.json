@@ -1,0 +1,326 @@
+[
+ {
+  "session_id": "bg",
+  "cwd": "/work/sandbox",
+  "hook_event_name": "SessionStart",
+  "source": "startup"
+ },
+ {
+  "session_id": "bg",
+  "cwd": "/work/sandbox",
+  "prompt_id": "1cff0f59-df7d-439f-adbd-4f515cd3446e",
+  "permission_mode": "default",
+  "hook_event_name": "UserPromptSubmit",
+  "prompt": "Do these two things, in this order: (1) Start this bash command IN THE BACKGROUND using the Bash tool with run_in_background=true: ping -n 40 127.0.0.1 > ping.txt . (2) Launch ONE subagent with the Agent/Task tool, subagent_type general-purpose, run in background (run_in_background=true), with the task: 'Use Glob to list *.md files in the current directory, then Read README.md, and reply with a one-line summary.' Then immediately end your turn by replying STARTED without waiting for anything."
+ },
+ {
+  "session_id": "bg",
+  "cwd": "/work/sandbox",
+  "prompt_id": "1cff0f59-df7d-439f-adbd-4f515cd3446e",
+  "permission_mode": "default",
+  "effort": {
+   "level": "medium"
+  },
+  "hook_event_name": "PreToolUse",
+  "tool_name": "Bash",
+  "tool_input": {
+   "command": "ping -n 40 127.0.0.1 > ping.txt",
+   "description": "Run 40-count ping to localhost in background, output to ping.txt",
+   "run_in_background": true
+  },
+  "tool_use_id": "toolu_01NSu6u5kp3es336kiRq6v8w"
+ },
+ {
+  "session_id": "bg",
+  "cwd": "/work/sandbox",
+  "prompt_id": "1cff0f59-df7d-439f-adbd-4f515cd3446e",
+  "permission_mode": "default",
+  "effort": {
+   "level": "medium"
+  },
+  "hook_event_name": "PostToolUse",
+  "tool_name": "Bash",
+  "tool_input": {
+   "command": "ping -n 40 127.0.0.1 > ping.txt",
+   "description": "Run 40-count ping to localhost in background, output to ping.txt",
+   "run_in_background": true
+  },
+  "tool_response": {
+   "stdout": "",
+   "stderr": "",
+   "interrupted": false,
+   "isImage": false,
+   "noOutputExpected": false,
+   "backgroundTaskId": "biythzrt8"
+  },
+  "tool_use_id": "toolu_01NSu6u5kp3es336kiRq6v8w",
+  "duration_ms": 410
+ },
+ {
+  "session_id": "bg",
+  "cwd": "/work/sandbox",
+  "prompt_id": "1cff0f59-df7d-439f-adbd-4f515cd3446e",
+  "permission_mode": "default",
+  "effort": {
+   "level": "medium"
+  },
+  "hook_event_name": "PreToolUse",
+  "tool_name": "Agent",
+  "tool_input": {
+   "description": "Summarize markdown files and README",
+   "prompt": "Use Glob to list *.md files in the current directory, then Read README.md, and reply with a one-line summary.",
+   "subagent_type": "general-purpose",
+   "run_in_background": true
+  },
+  "tool_use_id": "toolu_01MoasRztabHd1cYDZcyTzvn"
+ },
+ {
+  "session_id": "bg",
+  "cwd": "/work/sandbox",
+  "prompt_id": "1cff0f59-df7d-439f-adbd-4f515cd3446e",
+  "permission_mode": "default",
+  "effort": {
+   "level": "medium"
+  },
+  "hook_event_name": "PostToolUse",
+  "tool_name": "Agent",
+  "tool_input": {
+   "description": "Summarize markdown files and README",
+   "prompt": "Use Glob to list *.md files in the current directory, then Read README.md, and reply with a one-line summary.",
+   "subagent_type": "general-purpose",
+   "run_in_background": true
+  },
+  "tool_response": {
+   "isAsync": true,
+   "status": "async_launched",
+   "agentId": "a310b84efe315729c",
+   "description": "Summarize markdown files and README",
+   "resolvedModel": "claude-haiku-5-5",
+   "prompt": "Use Glob to list *.md files in the current directory, then Read README.md, and reply with a one-line summary.",
+   "outputFile": "C:\\Users\\adrie\\AppData\\Local\\Temp\\claude\\0630cdcffafe057c\\fa367802-91d1-47c2-a3ff-3387773d9afa\\tasks\\a310b84efe315729c.output",
+   "canReadOutputFile": true,
+   "canContinueAgent": true
+  },
+  "tool_use_id": "toolu_01MoasRztabHd1cYDZcyTzvn",
+  "duration_ms": 7
+ },
+ {
+  "session_id": "bg",
+  "cwd": "/work/sandbox",
+  "prompt_id": "1cff0f59-df7d-439f-adbd-4f515cd3446e",
+  "agent_id": "a310b84efe315729c",
+  "agent_type": "general-purpose",
+  "hook_event_name": "SubagentStart"
+ },
+ {
+  "session_id": "bg",
+  "cwd": "/work/sandbox",
+  "prompt_id": "1cff0f59-df7d-439f-adbd-4f515cd3446e",
+  "permission_mode": "default",
+  "effort": {
+   "level": "medium"
+  },
+  "hook_event_name": "Stop",
+  "stop_hook_active": false,
+  "last_assistant_message": "STARTED",
+  "background_tasks": [
+   {
+    "id": "biythzrt8",
+    "type": "shell",
+    "status": "running",
+    "description": "Run 40-count ping to localhost in background, output to ping.txt",
+    "command": "ping -n 40 127.0.0.1 > ping.txt"
+   },
+   {
+    "id": "a310b84efe315729c",
+    "type": "subagent",
+    "status": "running",
+    "description": "Summarize markdown files and README",
+    "agent_type": "general-purpose"
+   }
+  ],
+  "session_crons": []
+ },
+ {
+  "session_id": "bg",
+  "cwd": "/work/sandbox",
+  "prompt_id": "1cff0f59-df7d-439f-adbd-4f515cd3446e",
+  "permission_mode": "default",
+  "agent_id": "a310b84efe315729c",
+  "agent_type": "general-purpose",
+  "effort": {
+   "level": "medium"
+  },
+  "hook_event_name": "PreToolUse",
+  "tool_name": "Glob",
+  "tool_input": {
+   "pattern": "*.md",
+   "path": "C:\\Users\\adrie\\Documents\\Workspace\\FollowMyAgents\\sandbox"
+  },
+  "tool_use_id": "toolu_013Yq89tPw69Kx1yW7nMKcJN"
+ },
+ {
+  "session_id": "bg",
+  "cwd": "/work/sandbox",
+  "prompt_id": "1cff0f59-df7d-439f-adbd-4f515cd3446e",
+  "permission_mode": "default",
+  "agent_id": "a310b84efe315729c",
+  "agent_type": "general-purpose",
+  "effort": {
+   "level": "medium"
+  },
+  "hook_event_name": "PostToolUse",
+  "tool_name": "Glob",
+  "tool_input": {
+   "pattern": "*.md",
+   "path": "C:\\Users\\adrie\\Documents\\Workspace\\FollowMyAgents\\sandbox"
+  },
+  "tool_response": {
+   "filenames": [
+    "README.md"
+   ],
+   "durationMs": 33,
+   "numFiles": 1,
+   "truncated": false,
+   "totalMatches": 1,
+   "countIsComplete": true
+  },
+  "tool_use_id": "toolu_013Yq89tPw69Kx1yW7nMKcJN",
+  "duration_ms": 33
+ },
+ {
+  "session_id": "bg",
+  "cwd": "/work/sandbox",
+  "prompt_id": "1cff0f59-df7d-439f-adbd-4f515cd3446e",
+  "permission_mode": "default",
+  "agent_id": "a310b84efe315729c",
+  "agent_type": "general-purpose",
+  "effort": {
+   "level": "medium"
+  },
+  "hook_event_name": "PreToolUse",
+  "tool_name": "Read",
+  "tool_input": {
+   "file_path": "C:\\Users\\adrie\\Documents\\Workspace\\FollowMyAgents\\sandbox\\README.md"
+  },
+  "tool_use_id": "toolu_01MBzgEQSyWS5jKoDGgJ1RAt"
+ },
+ {
+  "session_id": "bg",
+  "cwd": "/work/sandbox",
+  "prompt_id": "1cff0f59-df7d-439f-adbd-4f515cd3446e",
+  "permission_mode": "default",
+  "agent_id": "a310b84efe315729c",
+  "agent_type": "general-purpose",
+  "effort": {
+   "level": "medium"
+  },
+  "hook_event_name": "PostToolUse",
+  "tool_name": "Read",
+  "tool_input": {
+   "file_path": "C:\\Users\\adrie\\Documents\\Workspace\\FollowMyAgents\\sandbox\\README.md"
+  },
+  "tool_response": {
+   "type": "text",
+   "file": {
+    "filePath": "C:\\Users\\adrie\\Documents\\Workspace\\FollowMyAgents\\sandbox\\README.md",
+    "content": "# Sandbox FollowMyAgents\n\nProjet jetable pour tester les hooks.\n",
+    "numLines": 4,
+    "startLine": 1,
+    "totalLines": 4
+   }
+  },
+  "tool_use_id": "toolu_01MBzgEQSyWS5jKoDGgJ1RAt",
+  "duration_ms": 12
+ },
+ {
+  "session_id": "bg",
+  "cwd": "/work/sandbox",
+  "prompt_id": "1cff0f59-df7d-439f-adbd-4f515cd3446e",
+  "permission_mode": "default",
+  "agent_id": "a310b84efe315729c",
+  "agent_type": "general-purpose",
+  "effort": {
+   "level": "medium"
+  },
+  "hook_event_name": "SubagentStop",
+  "stop_hook_active": false,
+  "last_assistant_message": "The only Markdown file in the directory is `README.md`, which describes the project as a throwaway sandbox for testing hooks.",
+  "background_tasks": [
+   {
+    "id": "biythzrt8",
+    "type": "shell",
+    "status": "running",
+    "description": "Run 40-count ping to localhost in background, output to ping.txt",
+    "command": "ping -n 40 127.0.0.1 > ping.txt"
+   },
+   {
+    "id": "a310b84efe315729c",
+    "type": "subagent",
+    "status": "running",
+    "description": "Summarize markdown files and README",
+    "agent_type": "general-purpose"
+   }
+  ],
+  "session_crons": []
+ },
+ {
+  "session_id": "bg",
+  "cwd": "/work/sandbox",
+  "prompt_id": "d1d11121-ccf6-4aae-8657-de4d9e81e91d",
+  "permission_mode": "default",
+  "hook_event_name": "UserPromptSubmit",
+  "prompt": "<task-notification>\n<task-id>a310b84efe315729c</task-id>\n<tool-use-id>toolu_01MoasRztabHd1cYDZcyTzvn</tool-use-id>\n<output-file>C:\\Users\\adrie\\AppData\\Local\\Temp\\claude\\0630cdcffafe057c\\fa367802-91d1-47c2-a3ff-3387773d9afa\\tasks\\a310b84efe315729c.output</output-file>\n<status>completed</status>\n<summary>Agent \"Summarize markdown files and README\" finished</summary>\n<note>A task-notification fires each time this agent stops with no live background children of its own. The user can send it another message and resume it, so the same task-id may notify more than once.</note>\n<result>The only Markdown file in the directory is `README.md`, which describes the project as a throwaway sandbox for testing hooks.</result>\n<usage><subagent_tokens>23950</subagent_tokens><tool_uses>2</tool_uses><duration_ms>2386</duration_ms></usage>\n</task-notification>"
+ },
+ {
+  "session_id": "bg",
+  "cwd": "/work/sandbox",
+  "prompt_id": "d1d11121-ccf6-4aae-8657-de4d9e81e91d",
+  "permission_mode": "default",
+  "effort": {
+   "level": "medium"
+  },
+  "hook_event_name": "Stop",
+  "stop_hook_active": false,
+  "last_assistant_message": "The subagent finished. Its summary: the only Markdown file in the directory is `README.md`, which describes the project as a throwaway sandbox for testing hooks.\n\nThe background ping (`ping -n 40 127.0.0.1 > ping.txt`) hasn't reported completion yet, so I haven't confirmed that `ping.txt` is written.",
+  "background_tasks": [
+   {
+    "id": "biythzrt8",
+    "type": "shell",
+    "status": "running",
+    "description": "Run 40-count ping to localhost in background, output to ping.txt",
+    "command": "ping -n 40 127.0.0.1 > ping.txt"
+   }
+  ],
+  "session_crons": []
+ },
+ {
+  "session_id": "bg",
+  "cwd": "/work/sandbox",
+  "prompt_id": "efc1c51d-be5e-462a-b713-561cbd3eaa42",
+  "permission_mode": "default",
+  "hook_event_name": "UserPromptSubmit",
+  "prompt": "<task-notification>\n<task-id>biythzrt8</task-id>\n<tool-use-id>toolu_01NSu6u5kp3es336kiRq6v8w</tool-use-id>\n<output-file>C:\\Users\\adrie\\AppData\\Local\\Temp\\claude\\0630cdcffafe057c\\fa367802-91d1-47c2-a3ff-3387773d9afa\\tasks\\biythzrt8.output</output-file>\n<status>completed</status>\n<summary>Background command \"Run 40-count ping to localhost in background, output to ping.txt\" completed (exit code 0)</summary>\n</task-notification>"
+ },
+ {
+  "session_id": "bg",
+  "cwd": "/work/sandbox",
+  "prompt_id": "efc1c51d-be5e-462a-b713-561cbd3eaa42",
+  "permission_mode": "default",
+  "effort": {
+   "level": "medium"
+  },
+  "hook_event_name": "Stop",
+  "stop_hook_active": false,
+  "last_assistant_message": "The background ping finished with exit code 0, so `ping.txt` should now hold the output of the 40-count ping to 127.0.0.1. I haven't opened the file to check its contents.",
+  "background_tasks": [],
+  "session_crons": []
+ },
+ {
+  "session_id": "bg",
+  "cwd": "/work/sandbox",
+  "prompt_id": "efc1c51d-be5e-462a-b713-561cbd3eaa42",
+  "hook_event_name": "SessionEnd",
+  "reason": "other"
+ }
+]

@@ -3,17 +3,19 @@ import type { Session } from "@shared/types";
 import { Mascot } from "./Mascot";
 import { progress, Ring } from "./Ring";
 import { IconCheckCircle, IconCircle, IconOpen, IconTerminal, KindIcon } from "./Icons";
-import { subtitleOf } from "./AgentRow";
+import { agentLabel, backgroundOf, subtitleOf } from "./AgentRow";
 import { since } from "../format";
 
 export function Detail({ session: s, now, onJump }: { session: Session; now: number; onJump: () => void }) {
   const p = progress(s);
   const sub = subtitleOf(s);
+  const bg = backgroundOf(s);
+  const doneSubs = s.subagents.filter((a) => a.status === "done").sort((a, b) => (b.endedAt ?? 0) - (a.endedAt ?? 0));
   const flash = s.flash && s.flash.until > now ? s.flash : undefined;
   return (
     <div data-testid="detail">
       <div className="d-hero">
-        <Mascot state={s.state} colorIndex={s.colorIndex} size={44} />
+        <Mascot state={bg.inBackground ? "working" : s.state} colorIndex={s.colorIndex} size={44} />
         <div className="txt">
           <div className="t">{s.title}</div>
           <div className={`s ${flash ? "" : sub.cls}`}>{flash ? flash.text : sub.text}</div>
@@ -34,7 +36,7 @@ export function Detail({ session: s, now, onJump }: { session: Session; now: num
                     ? `Durée ${since(s.startedAt, s.endedAt)}`
                     : `Depuis ${since(s.startedAt, now)}`}
                 {s.waitingSince ? ` · attend depuis ${since(s.waitingSince, now)}` : ""}
-                {s.subagents.length > 0 ? ` · ${s.subagents.length} sous-agent${s.subagents.length > 1 ? "s" : ""}` : ""}
+                {bg.count > 0 ? ` · ${bg.count} en arrière-plan` : ""}
               </span>
             )}
           </div>
@@ -50,6 +52,54 @@ export function Detail({ session: s, now, onJump }: { session: Session; now: num
                 <KindIcon kind={st.kind} />
               </span>
               <span className="l">{st.label}</span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {(bg.count > 0 || doneSubs.length > 0) && (
+        <div className="tasks" data-testid="tasks">
+          <div className="lbl">Sous-agents et tâches</div>
+          {bg.subs.map((a) => (
+            <div className="task" key={a.id}>
+              <Mascot state="working" colorIndex={s.colorIndex} size={12} />
+              <div className="txt">
+                <div className="t">
+                  {agentLabel(a.type)}
+                  {a.background && <span className="tag">arrière-plan</span>}
+                  <span className="when">{since(a.startedAt, now)}</span>
+                </div>
+                <div className="s">{a.action ?? a.description ?? "Démarre…"}</div>
+              </div>
+            </div>
+          ))}
+          {bg.tasks.map((b) => (
+            <div className="task" key={b.id}>
+              <span className="ico">
+                <IconTerminal />
+              </span>
+              <div className="txt">
+                <div className="t">
+                  {b.type === "shell" ? "Commande" : b.type === "subagent" ? agentLabel(b.agentType ?? "") : b.type}
+                  <span className="tag">arrière-plan</span>
+                  <span className="when">{since(b.startedAt, now)}</span>
+                </div>
+                <div className={`s${b.command ? " mono" : ""}`}>{b.command ?? b.description}</div>
+              </div>
+            </div>
+          ))}
+          {doneSubs.map((a) => (
+            <div className="task done" key={a.id}>
+              <span className="ico">
+                <IconCheckCircle />
+              </span>
+              <div className="txt">
+                <div className="t">
+                  {agentLabel(a.type)}
+                  {a.description && <span className="desc"> · {a.description}</span>}
+                </div>
+                {a.lastMessage && <div className="s res">{a.lastMessage}</div>}
+              </div>
             </div>
           ))}
         </div>

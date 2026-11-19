@@ -126,6 +126,43 @@ try {
     assert.equal(await page.locator('[data-testid="permission"]').count(), 0);
   });
 
+  await check("vraie session : commande + sous-agent en arrière-plan suivis jusqu'à leur fin", async () => {
+    const cmd = process.platform === "win32" ? "ping -n 15 127.0.0.1 > ping.txt" : "sleep 15";
+    const s = session(
+      `Do these two things, in this order: (1) Start this bash command IN THE BACKGROUND using the Bash tool with run_in_background=true: ${cmd} . ` +
+        "(2) Launch ONE subagent with the Agent tool, subagent_type general-purpose, run_in_background=true, with the task: " +
+        "'Use Glob to list *.md files in the current directory, then Read README.md, and reply with a one-line summary.' " +
+        "Then immediately end your turn by replying STARTED without waiting for anything.",
+      "allow:0",
+    );
+    // après le 1er Stop : tour fini, travail en arrière-plan
+    const end = Date.now() + 90000;
+    let seenBackground = false;
+    let seenSubagentDone = false;
+    while (Date.now() < end) {
+      const ss = (await sessions()).filter((x) => x.cwd.endsWith("sandbox") && x.state !== "done");
+      for (const x of ss) {
+        if (x.state === "idle" && x.background.length > 0) {
+          if (!seenBackground) {
+            const row = page.locator('[data-testid="agent-row"]', { hasText: x.title.slice(0, 12) });
+            if (!(await app.evaluate(() => globalThis.__fma.panel.visible))) await app.evaluate(() => globalThis.__fma.show("click"));
+            await row.locator("text=/En arrière-plan/").first().waitFor({ timeout: 3000 });
+            await page.screenshot({ path: path.join(root, "docs", "screenshots", "13-arriere-plan-reel.png") }).catch(() => {});
+          }
+          seenBackground = true;
+        }
+        if (x.subagents.some((a) => a.status === "done" && a.lastMessage)) seenSubagentDone = true;
+      }
+      if (seenBackground && seenSubagentDone && s.out().includes("EXIT")) break;
+      await sleep(250);
+    }
+    const out = await s.done;
+    assert.ok(seenBackground, "aucune session vue « en arrière-plan »\n" + out.slice(-600));
+    assert.ok(seenSubagentDone, "résultat du sous-agent non reçu");
+    const last = (await sessions()).filter((x) => x.cwd.endsWith("sandbox")).at(-1);
+    assert.deepEqual(last.background, [], "des tâches restent marquées en cours après la fin");
+  });
+
   await check("4 sessions en parallèle : 4 lignes à jour, latence hook → panneau < 1 s", async () => {
     await app.evaluate(() => {
       for (const s of globalThis.__fma.store.getSessions()) globalThis.__fma.store.dismiss(s.id);
