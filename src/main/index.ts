@@ -10,6 +10,7 @@ import { defaultSettingsPath, hooksState, installHooks, setTodoTools, todoToolsE
 import { Panel, rendererPaths } from "./panel";
 import { trayImage } from "./tray-icon";
 import { jumpToSession } from "./vscode";
+import { Updater } from "./updater";
 import { projectsDir, readTranscriptInfo, scanRecentTranscripts } from "./transcripts";
 import { describeTool, messagePreview, titleFromPrompt } from "./describe";
 import { folderTitle } from "./store";
@@ -20,6 +21,8 @@ const SETTINGS_PATH = process.env.FMA_CLAUDE_SETTINGS || defaultSettingsPath();
 const SCAN_TRANSCRIPTS = process.env.FMA_NO_TRANSCRIPTS !== "1";
 const NO_GLASS = process.env.FMA_NO_GLASS === "1";
 const SHORTCUT = "CommandOrControl+Alt+A";
+// Dépôt GitHub dont les Releases fournissent les mises à jour (FMA_UPDATE_REPO=owner/repo pour tester)
+const UPDATE_REPO = (process.env.FMA_UPDATE_REPO || "AdrienDIDIER/followmyagents").split("/");
 
 if (!app.requestSingleInstanceLock()) {
   app.quit();
@@ -34,6 +37,7 @@ let serverError: string | undefined;
 let tray: Tray | null = null;
 let panel: Panel;
 let quitting = false;
+let updater: Updater;
 const log = (m: string) => {
   if (process.env.FMA_DEBUG) console.log(`[fma] ${m}`);
 };
@@ -62,6 +66,8 @@ function snapshot(): AppSnapshot {
     hooks: { installed: st.installed && st.upToDate, settingsPath: SETTINGS_PATH, error: st.error },
     serverError,
     maxHeight: panel.maxHeight(),
+    update: updater.state,
+    version: app.getVersion(),
     glass: !NO_GLASS && (process.platform === "darwin" || process.platform === "win32"),
     now: Date.now(),
     platform: process.platform,
@@ -132,6 +138,8 @@ function trayMenu(): Menu {
         ]
       : []),
     { label: "Ouvrir le dossier de configuration", click: () => void shell.openPath(app.getPath("userData")) },
+    { type: "separator" },
+    ...updateMenuItems(),
     { type: "separator" },
     { label: "Quitter FollowMyAgents", role: "quit" },
   ]);
@@ -211,6 +219,53 @@ async function doUninstall() {
   }
   cachedHooksState(true);
   pushSnapshot();
+}
+
+// ---------- mises à jour (D22) ----------
+function updateMenuItems(): Electron.MenuItemConstructorOptions[] {
+  const st = updater.state;
+  const items: Electron.MenuItemConstructorOptions[] = [{ type: "separator" }];
+  if (st.state === "available") items.push({ label: `Installer la version ${st.version}…`, click: () => void confirmUpdate() });
+  else if (st.state === "downloading") items.push({ label: `Téléchargement de ${st.version}… ${st.progress} %`, enabled: false });
+  else items.push({ label: `Rechercher une mise à jour (v${app.getVersion()})`, click: () => void checkUpdate(true) });
+  items.push({
+    label: "Vérifier automatiquement",
+    type: "checkbox",
+    checked: cfg.prefs.autoUpdateCheck,
+    click: (i) => setPref("autoUpdateCheck", i.checked),
+  });
+  return items;
+}
+
+async function checkUpdate(manual = false) {
+  const st = await updater.check();
+  if (!manual) return;
+  if (st.state === "up-to-date") {
+    void dialog.showMessageBox({ type: "info", title: "FollowMyAgents", message: `FollowMyAgents est à jour (v${app.getVersion()}).` });
+  } else if (st.state === "error") {
+    void dialog.showMessageBox({ type: "warning", title: "FollowMyAgents", message: st.message });
+  } else if (st.state === "available") {
+    void confirmUpdate();
+  }
+}
+
+async function confirmUpdate() {
+  const st = updater.state;
+  if (st.state !== "available") return;
+  const waiting = store.getPendings().length;
+  const r = await dialog.showMessageBox({
+    type: "question",
+    title: "FollowMyAgents",
+    message: `Installer FollowMyAgents ${st.version} ?`,
+    detail:
+      (st.notes ? `${st.notes.slice(0, 600)}\n\n` : "") +
+      "L'app se ferme quelques secondes puis redémarre toute seule." +
+      (waiting ? `\n\n${waiting} demande(s) en attente repasseront dans le dialogue de VS Code.` : ""),
+    buttons: ["Installer et redémarrer", "Plus tard"],
+    defaultId: 0,
+    cancelId: 1,
+  });
+  if (r.response === 0) await updater.install();
 }
 
 // ---------- panneau ----------
@@ -300,6 +355,17 @@ function reconstructSessions() {
 async function start() {
   if (process.platform === "darwin") app.dock?.hide();
   cfg = loadConfig(app.getPath("userData"));
+  updater = new Updater({
+    owner: UPDATE_REPO[0],
+    repo: UPDATE_REPO[1],
+    currentVersion: app.getVersion(),
+    packaged: app.isPackaged,
+    exePath: app.getPath("exe"),
+    apiBase: process.env.FMA_UPDATE_API || undefined,
+    quit: () => app.quit(),
+    onChange: () => pushSnapshot(),
+    log,
+  });
   store = new SessionStore({
     pendingTimeoutSec: () => cfg.prefs.pendingTimeoutSec,
     autoRemoveDoneMin: () => cfg.prefs.autoRemoveDoneMin,
@@ -373,6 +439,13 @@ async function start() {
 
   setInterval(() => store.tick(), 1000);
 
+  // mises à jour : 15 s après le démarrage puis toutes les 6 h (pas en test, sauf API simulée)
+  if (process.env.FMA_E2E !== "1" || process.env.FMA_UPDATE_API) {
+    const auto = () => cfg.prefs.autoUpdateCheck && void updater.check();
+    setTimeout(auto, 15_000);
+    setInterval(auto, 6 * 3600_000);
+  }
+
   // ---------- IPC ----------
   ipcMain.on("ready", () => pushSnapshot());
   ipcMain.on("answer", (_e, id: string, answer: PendingAnswer) => {
@@ -390,6 +463,8 @@ async function start() {
   ipcMain.on("toggle-detach", () => setPref("detached", !cfg.prefs.detached));
   ipcMain.on("resize", (_e, h: number) => panel.setContentHeight(h));
   ipcMain.on("want-focus", () => panel.takeFocus());
+  ipcMain.on("update-install", () => void confirmUpdate());
+  ipcMain.on("update-check", () => void checkUpdate(true));
   ipcMain.on("context-menu", () => trayMenu().popup({ window: panel.win }));
 
   // Mode capture (e2e) : expose quelques actions au script Playwright.
@@ -402,6 +477,7 @@ async function start() {
       hide: () => panel.hide(),
       port: () => server.port,
       lastJump: () => lastJump,
+      updater: () => updater,
     };
   }
 }

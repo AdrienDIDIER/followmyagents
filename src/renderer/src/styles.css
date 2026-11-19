@@ -600,6 +600,34 @@ input:focus-visible,
   color: var(--text-2);
   line-height: 1.4;
 }
+.notice.update {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.notice.update > span {
+  flex: 1;
+  min-width: 0;
+}
+.btn.small {
+  flex: none;
+  padding: 4px 10px;
+  font-size: 11.5px;
+}
+.notice .bar {
+  flex-basis: 100%;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--fill-2);
+  overflow: hidden;
+}
+.notice .bar i {
+  display: block;
+  height: 100%;
+  background: var(--action);
+  transition: width 200ms;
+}
 .notice b {
   color: var(--text-1);
   font-weight: 500;

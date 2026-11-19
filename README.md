@@ -39,6 +39,16 @@ npm run dist:win       # release/FollowMyAgents Setup x.y.z.exe (NSIS)
 npm run dist:mac       # release/*.dmg — à lancer sur un Mac
 ```
 
+## Publier une nouvelle version (mise à jour automatique)
+
+```bash
+npm run release -- patch      # ou minor, major, ou un numéro : 0.3.0
+```
+
+Le script lance les tests, met à jour la version, crée le tag `vX.Y.Z` et pousse.
+GitHub Actions construit alors l'app Mac (`.dmg` + `.zip` universels) et Windows (`.exe`), puis publie la Release avec ses empreintes SHA-256.
+Les apps installées le détectent (au démarrage puis toutes les 6 h) et proposent « Installer et redémarrer ».
+
 ## Documentation
 
 - `BRIEF.md` : le brief produit.

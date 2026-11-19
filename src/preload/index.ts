@@ -27,6 +27,8 @@ const api: FmaApi & {
   toggleDetach: () => ipcRenderer.send("toggle-detach"),
   resize: (h: number) => ipcRenderer.send("resize", h),
   wantFocus: () => ipcRenderer.send("want-focus"),
+  installUpdate: () => ipcRenderer.send("update-install"),
+  checkUpdate: () => ipcRenderer.send("update-check"),
   contextMenu: () => ipcRenderer.send("context-menu"),
 };
 

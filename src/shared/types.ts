@@ -174,7 +174,16 @@ export interface Prefs {
   pendingTimeoutSec: number;
   /** retrait automatique des sessions terminées (min, 0 = jamais) */
   autoRemoveDoneMin: number;
+  /** vérifier les mises à jour (au démarrage puis toutes les 6 h) */
+  autoUpdateCheck: boolean;
 }
+
+export type UpdateView =
+  | { state: "idle" | "checking" | "up-to-date" }
+  | { state: "available"; version: string; notes: string; pageUrl: string }
+  | { state: "downloading"; version: string; progress: number }
+  | { state: "installing"; version: string }
+  | { state: "error"; message: string; version?: string };
 
 export interface HooksStatus {
   installed: boolean;
@@ -189,6 +198,9 @@ export interface AppSnapshot {
   pendings: Pending[];
   prefs: Prefs;
   hooks: HooksStatus;
+  /** état de la mise à jour automatique */
+  update: UpdateView;
+  version: string;
   serverError?: string;
   /** verre natif actif (sinon fond opaque --panel-fallback) */
   glass: boolean;
@@ -212,4 +224,6 @@ export interface FmaApi {
   toggleDetach(): void;
   resize(height: number): void;
   wantFocus(): void;
+  installUpdate(): void;
+  checkUpdate(): void;
 }

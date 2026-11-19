@@ -1,7 +1,7 @@
 {
   "name": "followmyagents",
   "productName": "FollowMyAgents",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Widget de bureau qui suit vos sessions Claude Code et répond aux permissions et questions sans ouvrir VS Code.",
   "main": "./out/main/index.js",
   "author": "FollowMyAgents",
@@ -19,10 +19,11 @@
     "hooks": "node out/main/cli.js",
     "sandbox": "node scripts/make-sandbox.mjs",
     "dist:win": "npm run build && electron-builder --win",
-    "dist:mac": "npm run build && electron-builder --mac",
+    "dist:mac": "npm run build && electron-builder --mac --universal",
     "icons": "node --experimental-strip-types --no-warnings scripts/make-icons.mts",
     "e2e:native": "npm run build && node e2e/native.mjs",
-    "e2e:live": "npm run build && node e2e/live.mjs"
+    "e2e:live": "npm run build && node e2e/live.mjs",
+    "release": "node scripts/release.mjs"
   },
   "build": {
     "appId": "dev.followmyagents.app",
@@ -43,8 +44,20 @@
     ],
     "mac": {
       "target": [
-        "dmg"
+        {
+          "target": "dmg",
+          "arch": [
+            "universal"
+          ]
+        },
+        {
+          "target": "zip",
+          "arch": [
+            "universal"
+          ]
+        }
       ],
+      "artifactName": "FollowMyAgents-${version}-mac-${arch}.${ext}",
       "category": "public.app-category.developer-tools",
       "icon": "build/icon.png",
       "extendInfo": {
@@ -59,8 +72,10 @@
     },
     "nsis": {
       "oneClick": false,
-      "allowToChangeInstallationDirectory": true
-    }
+      "allowToChangeInstallationDirectory": true,
+      "artifactName": "FollowMyAgents-Setup-${version}.${ext}"
+    },
+    "publish": null
   },
   "devDependencies": {
     "@types/node": "^22.20.5",
@@ -76,5 +91,9 @@
     "typescript": "5.9",
     "vite": "^8.3.8",
     "vitest": "^5.1.1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/AdrienDIDIER/followmyagents.git"
   }
 }

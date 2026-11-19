@@ -148,6 +148,7 @@ export function App() {
           </div>
         ) : (
           <div className={view.dir === "back" ? "slide-back" : ""}>
+            <UpdateNotice snap={snap} />
             {snap.serverError && (
               <div className="notice err">
                 <b>Serveur arrêté :</b> {snap.serverError}.
@@ -256,6 +257,44 @@ export function App() {
       </div>
     </div>
   );
+}
+
+function UpdateNotice({ snap }: { snap: AppSnapshot }) {
+  const u = snap.update;
+  if (u.state === "available") {
+    return (
+      <div className="notice update" data-testid="update">
+        <span>
+          <b>Version {u.version} disponible</b> (actuelle : {snap.version})
+        </span>
+        <button className="btn primary small" onClick={() => fma.installUpdate()}>
+          Installer
+        </button>
+      </div>
+    );
+  }
+  if (u.state === "downloading" || u.state === "installing") {
+    return (
+      <div className="notice update" data-testid="update">
+        <span>
+          {u.state === "downloading" ? `Téléchargement de la version ${u.version}… ${u.progress} %` : `Installation de la version ${u.version}…`}
+        </span>
+        {u.state === "downloading" && (
+          <div className="bar">
+            <i style={{ width: `${u.progress}%` }} />
+          </div>
+        )}
+      </div>
+    );
+  }
+  if (u.state === "error" && u.version) {
+    return (
+      <div className="notice" data-testid="update">
+        {u.message}
+      </div>
+    );
+  }
+  return null;
 }
 
 function SoundBtn({ on }: { on: boolean }) {

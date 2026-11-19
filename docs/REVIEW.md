@@ -154,6 +154,7 @@ Détail dans [`docs/DECISIONS.md`](DECISIONS.md). Les plus structurantes :
 - **D19** — Sous-agents et tâches en arrière-plan suivis (correctif après retour).
 - **D20** — « Activité récente » quand l'agent n'a pas de plan + option « Plans des agents » qui active TodoWrite (correctif après retour).
 - **D21** — Choix de la fenêtre VS Code grâce aux fichiers `~/.claude/ide/*.lock` (correctif après retour).
+- **D22** — Mises à jour automatiques : updater maison + Releases GitHub construites par GitHub Actions (`npm run release -- patch`).
 
 ---
 

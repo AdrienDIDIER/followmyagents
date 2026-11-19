@@ -74,6 +74,24 @@ const waitBlock = async (kind) => {
 const ev = (sid, name, extra = {}) =>
   post("/hook/event", { session_id: sid, transcript_path: "", cwd: `C:\\work\\${sid}`, hook_event_name: name, ...extra });
 
+// faux GitHub : une release 9.9.9 pour vérifier le bandeau de mise à jour
+const fakeGh = http.createServer((req, res) => {
+  if (req.url === "/repos/test/fma/releases/latest") {
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({
+      tag_name: "v9.9.9", body: "Notes", html_url: "https://example.invalid", draft: false, prerelease: false,
+      assets: [
+        { name: "FollowMyAgents-Setup-9.9.9.exe", browser_download_url: "http://127.0.0.1/x.exe", size: 1 },
+        { name: "FollowMyAgents-9.9.9-mac-universal.zip", browser_download_url: "http://127.0.0.1/x.zip", size: 1 },
+        { name: "SHA256SUMS.txt", browser_download_url: "http://127.0.0.1/s", size: 1 },
+      ],
+    }));
+  } else res.writeHead(404).end();
+});
+await new Promise((r) => fakeGh.listen(0, "127.0.0.1", r));
+env.FMA_UPDATE_API = `http://127.0.0.1:${fakeGh.address().port}`;
+env.FMA_UPDATE_REPO = "test/fma";
+
 const app = await electron.launch({ args: [root], env, cwd: root, timeout: 30000 });
 const mainLog = fs.createWriteStream(path.join(root, "e2e", "tmp", "main.log"));
 fs.mkdirSync(path.join(root, "e2e", "tmp"), { recursive: true });
@@ -393,6 +411,14 @@ try {
     assert.equal(await page.locator('[data-testid="agent-row"]').count(), before - 1);
   });
 
+  await check("mise à jour : une release plus récente affiche le bandeau « Version disponible »", async () => {
+    const st = await app.evaluate(() => globalThis.__fma.updater().check());
+    assert.equal(st.state, "available");
+    await page.waitForSelector('[data-testid="update"]', { timeout: 2000 });
+    assert.match(await page.locator('[data-testid="update"]').innerText(), /Version 9\.9\.9 disponible/);
+    await shot("15-mise-a-jour");
+  });
+
   await check("bouton son : préférence mémorisée", async () => {
     await page.getByRole("button", { name: "Activer le son", exact: true }).click();
     await sleep(200);
@@ -423,6 +449,7 @@ try {
   });
 } finally {
   await app.close().catch(() => {});
+  fakeGh.close();
   fs.writeFileSync(path.join(shots, "e2e-results.json"), JSON.stringify(results, null, 2));
   fs.rmSync(tmp, { recursive: true, force: true });
 }

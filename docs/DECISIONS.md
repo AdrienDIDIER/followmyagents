@@ -109,3 +109,15 @@ Format : **choix** · alternatives · raison.
   - macOS : l'AppleScript compare aussi le fichier actif de chaque fenêtre (`AXDocument`) au chemin racine.
   - Si le dossier n'est ouvert nulle part, `code` rouvre le **dossier racine** (pas le sous-dossier, qui créerait une fenêtre de plus).
 - Limite : deux fenêtres sur le même dossier restent indiscernables (la 1re trouvée est prise).
+
+## D22 — Mises à jour automatiques : updater maison + Releases GitHub
+- **Choix (validé par l'utilisateur)** :
+  - à chaque tag `vX.Y.Z`, GitHub Actions (`.github/workflows/release.yml`) construit l'app sur macOS (universelle : `.dmg` + `.zip`) et sur Windows (`.exe` NSIS), puis crée la Release avec `SHA256SUMS.txt` ;
+  - l'app vérifie `releases/latest` 15 s après le démarrage puis toutes les 6 h (désactivable). Si une version plus récente existe : bandeau « Version X disponible · Installer » + entrée dans le menu de l'icône ;
+  - « Installer » : confirmation, téléchargement, **vérification SHA-256** (sinon refus), puis :
+    - Windows : installeur NSIS silencieux `/S --force-run`, qui relance l'app ;
+    - macOS : script qui attend la fin de l'app, remplace le `.app`, puis le relance.
+- **Alternative écartée** : `electron-updater`. Sur macOS, il passe par Squirrel.Mac, qui exige une app signée par un compte Apple Developer.
+- **Vérifié** : Windows de bout en bout (`e2e/update-win.mjs` : 0.2.0 installée → détecte 0.2.1 → installe → relance en 14 s). macOS : logique couverte par des tests unitaires, jamais exécutée sur un Mac.
+- **Limite macOS** : l'app n'est signée qu'« ad hoc ». Chaque nouvelle version a donc une signature différente, et macOS peut **oublier les autorisations Accessibilité / Automatisation** après une mise à jour : il faut alors les réactiver (menu → Autorisations macOS…). Seule solution durable : signer avec un certificat stable (Apple Developer, ou certificat auto-signé importé dans la CI, non testé).
+- Le dépôt doit être **public** : l'API GitHub anonyme ne voit pas les Releases d'un dépôt privé (l'app répondrait « à jour »).
