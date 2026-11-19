@@ -72,6 +72,8 @@ export interface JumpDeps {
   log?: (m: string) => void;
   /** macOS : une autorisation manque pour choisir la fenêtre */
   onAccessibilityDenied?: (kind: "accessibility" | "automation") => void;
+  /** reçoit le détail de chaque tentative (diagnostic « Copier le diagnostic du dernier ↗ ») */
+  onDiag?: (d: Record<string, unknown>) => void;
   run?: Runner;
   launch?: Launcher;
   exists?: (p: string) => boolean;
@@ -106,6 +108,7 @@ export async function focusVsCodeWindow(cwd: string, deps: JumpDeps): Promise<Fo
   // dossier racine de la fenêtre VS Code qui contient la session (et noms à chercher dans les titres)
   const { names, root } = titleCandidates(cwd, deps.ideWindows ?? readIdeWindows(), platform);
   deps.log?.(`jump : racine ${root}, titres cherchés ${JSON.stringify(names)}`);
+  deps.onDiag?.({ cwd, root, names });
 
   if (platform === "win32") {
     const script = path.join(deps.scriptsDir, "focus-window.ps1");
@@ -115,6 +118,7 @@ export async function focusVsCodeWindow(cwd: string, deps: JumpDeps): Promise<Fo
       4000,
     );
     deps.log?.(`focus-window.ps1 : ${r.stdout.trim() || r.stderr.trim()}`);
+    deps.onDiag?.({ script: "focus-window.ps1", code: r.code, stdout: r.stdout.trim(), stderr: r.stderr.trim() });
     if (r.stdout.startsWith("FOCUSED")) return "focused";
     if (r.stdout.startsWith("FALLBACK")) return "activated-app";
     return "failed";
@@ -137,6 +141,7 @@ export async function focusVsCodeWindow(cwd: string, deps: JumpDeps): Promise<Fo
     const script = path.join(deps.scriptsDir, "focus-window-mac.applescript");
     const r = await run("osascript", [script, root, ...names], 4000);
     deps.log?.(`focus-window-mac : code=${r.code} ${r.stdout.trim()} ${r.stderr.trim()}`);
+    deps.onDiag?.({ script: "focus-window-mac.applescript", code: r.code, stdout: r.stdout.trim(), stderr: r.stderr.trim() });
     if (r.stdout.startsWith("FOCUSED")) return "focused";
     if (r.stdout.startsWith("NOTFOUND") || r.stdout.startsWith("NOAPP")) return openFolder();
     const denied = permissionErrorKind(r);
@@ -162,4 +167,25 @@ export async function jumpToSession(sessionId: string, cwd: string, deps: JumpDe
   await wait(ms);
   await deps.openExternal(sessionUri(sessionId));
   return outcome;
+}
+
+/** Titres réels des fenêtres VS Code (diagnostic). */
+export async function listVsCodeWindowTitles(platform: NodeJS.Platform = process.platform, run: Runner = defaultRun): Promise<string> {
+  if (platform === "darwin") {
+    const r = await run(
+      "osascript",
+      ["-e", 'tell application "System Events" to get name of every window of (every application process whose bundle identifier is "com.microsoft.VSCode")'],
+      4000,
+    );
+    return (r.stdout || r.stderr).trim();
+  }
+  if (platform === "win32") {
+    const r = await run(
+      "powershell.exe",
+      ["-NoProfile", "-NonInteractive", "-Command", "Get-Process Code -ErrorAction SilentlyContinue | Where-Object { $_.MainWindowTitle } | ForEach-Object { $_.MainWindowTitle }"],
+      4000,
+    );
+    return (r.stdout || r.stderr).trim();
+  }
+  return "";
 }
