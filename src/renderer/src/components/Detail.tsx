@@ -28,7 +28,11 @@ export function Detail({ session: s, now, onJump }: { session: Session; now: num
               </>
             ) : (
               <span>
-                {s.state === "done" && s.endedAt ? `Durée ${since(s.startedAt, s.endedAt)}` : `Depuis ${since(s.startedAt, now)}`}
+                {s.reconstructed
+                  ? "Session reprise au démarrage de l'app"
+                  : s.state === "done" && s.endedAt
+                    ? `Durée ${since(s.startedAt, s.endedAt)}`
+                    : `Depuis ${since(s.startedAt, now)}`}
                 {s.waitingSince ? ` · attend depuis ${since(s.waitingSince, now)}` : ""}
                 {s.subagents.length > 0 ? ` · ${s.subagents.length} sous-agent${s.subagents.length > 1 ? "s" : ""}` : ""}
               </span>

@@ -47,14 +47,15 @@ export class Panel {
       hasShadow: true,
       title: "FollowMyAgents",
       // macOS : NSPanel non activant + vibrancy ; Windows : acrylique
+      // FMA_VIBRANCY=hud pour comparer avec "popover" (BRIEF §4.7)
       ...(this.isMac
         ? {
             type: "panel",
-            transparent: true,
-            vibrancy: glass ? ("popover" as const) : undefined,
+            vibrancy: glass ? ((process.env.FMA_VIBRANCY as "popover" | "hud") || "popover") : undefined,
             visualEffectState: "active" as const,
+            // coins arrondis par le système (le CSS ne peut pas découper le verre natif)
             roundedCorners: true,
-            backgroundColor: "#00000000",
+            backgroundColor: glass ? "#00000000" : "#1E1E22",
           }
         : {}),
       ...(this.isWin

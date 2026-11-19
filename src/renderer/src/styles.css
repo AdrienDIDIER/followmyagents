@@ -89,6 +89,10 @@ input:focus-visible,
   /* Windows 11 arrondit lui-même la fenêtre acrylique (8 px) */
   border-radius: 8px;
 }
+.panel.mac {
+  /* macOS arrondit lui-même la fenêtre sans cadre (~10 px) */
+  border-radius: 10px;
+}
 .panel.opening {
   animation: panel-in 180ms var(--ease-out);
 }
@@ -433,7 +437,7 @@ input:focus-visible,
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 7px 6px;
+  padding: 8px 6px;
   border-radius: 10px;
   transition: background 120ms;
 }

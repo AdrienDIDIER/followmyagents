@@ -18,5 +18,9 @@
   [
     "✅",
     "4 sessions en parallèle : 4 lignes à jour, latence hook → panneau < 1 s"
+  ],
+  [
+    "✅",
+    "SessionStart (hook command + curl) crée la session avec son titre"
   ]
 ]

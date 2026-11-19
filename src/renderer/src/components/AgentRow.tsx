@@ -77,7 +77,8 @@ export function AgentRow({
               <Ring done={p.done} total={p.total} colorIndex={s.colorIndex} />
             ) : s.state === "working" ? (
               <>
-                <span>{since(s.startedAt, now)}</span>
+                {/* heure de début inconnue pour une session reconstruite depuis son transcript */}
+                {!s.reconstructed && <span>{since(s.startedAt, now)}</span>}
                 <Activity />
               </>
             ) : null}

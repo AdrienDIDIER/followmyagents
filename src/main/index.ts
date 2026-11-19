@@ -43,8 +43,18 @@ function scriptsDir(): string {
 }
 
 // ---------- état → renderer ----------
+// État des hooks mis en cache : settings.json n'est relu que toutes les 10 s
+// (ou juste après une installation / désinstallation), pas à chaque événement.
+let hooksCache: { at: number; st: ReturnType<typeof hooksState> } | null = null;
+function cachedHooksState(force = false) {
+  if (force || !hooksCache || Date.now() - hooksCache.at > 10_000) {
+    hooksCache = { at: Date.now(), st: hooksState(SETTINGS_PATH, { port: cfg.port, token: cfg.token }) };
+  }
+  return hooksCache.st;
+}
+
 function snapshot(): AppSnapshot {
-  const st = hooksState(SETTINGS_PATH, { port: cfg.port, token: cfg.token });
+  const st = cachedHooksState();
   return {
     sessions: store.getSessions(),
     pendings: store.getPendings(),
@@ -85,7 +95,7 @@ function updateTray() {
 }
 
 function trayMenu(): Menu {
-  const st = hooksState(SETTINGS_PATH, { port: cfg.port, token: cfg.token });
+  const st = cachedHooksState(true);
   const hooksLabel = st.error
     ? `Hooks : ${st.error}`
     : st.installed && st.upToDate
@@ -131,6 +141,7 @@ async function doInstall() {
   } catch (e) {
     dialog.showErrorBox("FollowMyAgents", (e as Error).message);
   }
+  cachedHooksState(true);
   pushSnapshot();
 }
 
@@ -156,6 +167,7 @@ async function doUninstall() {
   } catch (e) {
     dialog.showErrorBox("FollowMyAgents", (e as Error).message);
   }
+  cachedHooksState(true);
   pushSnapshot();
 }
 

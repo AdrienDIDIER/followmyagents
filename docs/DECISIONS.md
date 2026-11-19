@@ -35,3 +35,43 @@ Format : **choix** · alternatives · raison.
 ## D7 — Stack : electron-vite + React 18 + TypeScript, tests Vitest, captures Playwright
 - **Choix** : `electron-vite` (main/preload/renderer dans un seul outil), `vitest` pour les tests unitaires, `playwright` (`_electron`) pour lancer l'app et faire des captures, `electron-builder` pour le packaging.
 - Raison : c'est la stack recommandée par le brief (§4.1), avec l'outillage le plus simple.
+
+## D8 — Délai avant de relâcher une demande : 580 s (au lieu de 120 s)
+- **Choix** : une demande sans réponse reste dans le widget 580 s (juste sous le `timeout` de 600 s du hook), puis l'app répond vide. Réglable (`prefs.pendingTimeoutSec` dans `config.json`).
+- Alternative : 120 s, comme dans le brief.
+- Raison : le brief prévoyait 120 s pour « retomber sur le dialogue VS Code ». Or la Phase 0 montre que ce dialogue est **déjà affiché en parallèle** dès le début. Relâcher à 120 s n'apporterait rien et rendrait le widget inutilisable pour une demande vieille de plus de 2 min.
+
+## D9 — Notifications natives seulement après 30 s sans réponse
+- **Choix** : quand une demande arrive, le panneau s'ouvre tout seul (§4.7). Une notification native n'est envoyée que si la demande est toujours sans réponse 30 s plus tard. Un clic sur la notification ouvre le panneau et focalise la demande. Désactivable dans le menu de l'icône.
+- Raison : notifier immédiatement doublerait l'ouverture automatique du panneau. Le rappel à 30 s couvre le cas « je n'ai pas vu le panneau ».
+
+## D10 — Échap : refuser ou fermer selon le focus
+- **Choix** : `Échap` refuse une permission seulement si le **bloc de cette demande a le focus clavier** (cas du raccourci global, qui le focalise). Sinon, `Échap` ferme le panneau (ou revient à la liste depuis la vue détail).
+- Raison : le brief demande les deux (« Échap = Deny » et « Échap ferme le panneau »). Cette règle évite les refus accidentels.
+
+## D11 — Titres de session lus dans le transcript (titre de l'onglet VS Code)
+- **Choix** : priorité `session_title` > titre lu dans le transcript (`custom-title`, sinon `ai-title`, le titre affiché sur l'onglet VS Code) > 40 premiers caractères du 1er prompt > nom du dossier. Le transcript est relu (fin de fichier seulement) après `UserPromptSubmit`, `Stop` et `SessionStart`.
+- Alternative : générer un titre « Verbe · Objet » avec `claude-haiku-5-5` (§6, v1.1).
+- Raison : les transcripts contiennent déjà le titre généré par Claude Code. C'est gratuit, sans clé API, et **identique au nom de l'onglet**, ce qui aide à faire le lien avec VS Code.
+
+## D12 — Windows : panneau non focalisable par défaut
+- **Choix** : sous Windows, la fenêtre est créée `focusable: false`. Les clics fonctionnent sans activer l'app (vérifié par un vrai clic souris). Elle ne devient focalisable que pour une saisie clavier : clic dans « Autre… », ou ouverture par le raccourci global. Elle redevient non focalisable dès qu'elle perd le focus.
+- Raison : critère « ne vole jamais le focus ». Sur macOS, c'est le type `panel` (NSPanel non activant) qui joue ce rôle.
+
+## D13 — Serveur : `Connection: close` sur chaque réponse
+- Raison : évite qu'un client réutilise une connexion keep-alive au moment où le serveur la ferme (ECONNRESET), ce qui ferait perdre un hook silencieusement. Le coût est négligeable en local.
+
+## D14 — Sessions reconstruites au démarrage
+- **Choix** : au lancement, les transcripts principaux modifiés depuis moins de 30 min sont relus et affichés comme sessions « reprises ». Une session reprise sans nouvel événement disparaît 30 min après la dernière écriture de son transcript.
+- Limite : un transcript ne dit pas si la session est encore ouverte. Une session fermée récemment apparaît donc comme « en pause » jusqu'à expiration.
+
+## D15 — Pas d'installation automatique des hooks
+- **Choix** : l'app n'écrit jamais dans `~/.claude/settings.json` toute seule. Elle affiche « Hooks non installés » et propose « Installer les hooks… » dans le menu de l'icône (clic droit), **avec une confirmation qui montre le chemin**. Un CLI (`npm run hooks -- install --user`) fait la même chose. `--user` doit être donné explicitement.
+- Raison : consigne de sécurité (c'est l'utilisateur qui installe, après relecture).
+
+## D16 — Icône Windows : mascotte bleue + pastille orange
+- **Choix** : la mascotte bleue de la zone de notification passe aux yeux ronds quand quelqu'un attend, avec une pastille orange portant le nombre (1–9, « + » au-delà). Sur macOS : image *template* monochrome + `tray.setTitle(n)`. `setTitle` ne permet pas l'orange, le nombre y est donc dans la couleur de la barre des menus.
+
+## D17 — Mode `dontAsk` et outils de liste d'étapes
+- En mode `dontAsk`, AskUserQuestion est refusé d'office par Claude Code : il n'y a rien à afficher.
+- `TodoWrite` / `TaskCreate` sont désactivés par défaut dans la version testée (voir phase0 (e)). L'anneau de progression n'apparaît donc que si l'utilisateur les active (ex. `CLAUDE_CODE_ENABLE_TODO_TOOLS=1`). Sinon : indicateur d'activité + temps écoulé (§3.1.4).

@@ -137,7 +137,7 @@ export function App() {
   return (
     <div
       ref={root}
-      className={`panel${glass ? "" : " no-glass"}${isWin ? " win from-bottom" : ""}${opening ? " opening" : ""}`}
+      className={`panel${glass ? "" : " no-glass"}${isWin ? " win from-bottom" : ""}${snap.platform === "darwin" ? " mac" : ""}${opening ? " opening" : ""}`}
       data-testid="panel"
     >
       {header}

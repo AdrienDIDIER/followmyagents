@@ -9,9 +9,9 @@
   "private": true,
   "type": "commonjs",
   "scripts": {
-    "dev": "electron-vite dev",
+    "dev": "node scripts/run-electron-vite.mjs dev",
     "build": "electron-vite build",
-    "start": "electron-vite preview",
+    "start": "node scripts/run-electron-vite.mjs preview",
     "typecheck": "tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p tsconfig.web.json",
     "test": "vitest run",
     "test:watch": "vitest",
@@ -20,7 +20,9 @@
     "sandbox": "node scripts/make-sandbox.mjs",
     "dist:win": "npm run build && electron-builder --win",
     "dist:mac": "npm run build && electron-builder --mac",
-    "icons": "node --experimental-strip-types --no-warnings scripts/make-icons.mts"
+    "icons": "node --experimental-strip-types --no-warnings scripts/make-icons.mts",
+    "e2e:native": "npm run build && node e2e/native.mjs",
+    "e2e:live": "npm run build && node e2e/live.mjs"
   },
   "build": {
     "appId": "dev.followmyagents.app",
