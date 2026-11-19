@@ -292,6 +292,7 @@ export class SessionStore {
         this.cancelSessionPendings(s.id, { type: "superseded" });
         s.state = "done";
         s.endedAt = this.now();
+        s.subtitle = s.lastMessage ? messagePreview(s.lastMessage) || "Session terminée" : "Session terminée";
         s.subagents = [];
         if (s.lastCommand) s.lastCommand.running = false;
         break;

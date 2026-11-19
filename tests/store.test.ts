@@ -138,6 +138,7 @@ describe("sessions", () => {
     s = store.getSession("s1")!;
     expect(s.state).toBe("done");
     expect(s.endedAt).toBe(t);
+    expect(s.subtitle).toBe("Done");
   });
 
   it("sous-agents : SubagentStart / SubagentStop", () => {

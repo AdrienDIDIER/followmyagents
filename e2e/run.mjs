@@ -29,6 +29,7 @@ Object.assign(env, {
   FMA_CLAUDE_SETTINGS: fakeSettings,
   FMA_NO_TRANSCRIPTS: "1",
   FMA_E2E: "1",
+  FMA_NO_JUMP: "1",
   FMA_NO_GLASS: process.env.FMA_GLASS === "1" ? "0" : "1",
 });
 
@@ -55,23 +56,38 @@ function post(route, body, token = TOKEN) {
         res.on("end", () => resolve({ status: res.statusCode, body: b ? JSON.parse(b) : null }));
       },
     );
-    req.on("error", reject);
+    const t0 = Date.now();
+    req.on("error", (e) => {
+      console.log(`   [post ${route} erreur après ${Date.now() - t0} ms : ${e.message}]`);
+      reject(e);
+    });
     req.end(data);
   });
 }
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+// attend l'apparition d'un bloc d'attention et la fin de son animation de dépliage (220 ms)
+let page;
+const waitBlock = async (kind) => {
+  await page.waitForSelector(`[data-testid="${kind}"]`, { timeout: 5000 });
+  await sleep(350);
+};
 const ev = (sid, name, extra = {}) =>
   post("/hook/event", { session_id: sid, transcript_path: "", cwd: `C:\\work\\${sid}`, hook_event_name: name, ...extra });
 
 const app = await electron.launch({ args: [root], env, cwd: root, timeout: 30000 });
-const page = await app.firstWindow();
+const mainLog = fs.createWriteStream(path.join(root, "e2e", "tmp", "main.log"));
+fs.mkdirSync(path.join(root, "e2e", "tmp"), { recursive: true });
+app.process().stdout?.pipe(mainLog);
+app.process().stderr?.pipe(mainLog);
+app.process().on("exit", (code) => console.log("electron exit", code));
+page = await app.firstWindow();
 await page.waitForLoadState("domcontentloaded");
 const show = (r = "click") => app.evaluate((_e, r) => globalThis.__fma.show(r), r);
 const hide = () => app.evaluate(() => globalThis.__fma.hide());
 const visible = () => app.evaluate(() => globalThis.__fma.panel.visible);
 const shot = async (name) => {
   await sleep(450);
-  await page.locator('[data-testid="panel"]').screenshot({ path: path.join(shots, `${name}.png`) });
+  await page.screenshot({ path: path.join(shots, `${name}.png`), omitBackground: true });
 };
 
 try {
@@ -145,7 +161,7 @@ try {
     await page.waitForSelector('text=Recherche de « token-latency »', { timeout: 1000 });
     const dt = Date.now() - t0;
     assert.ok(dt < 1000, `${dt} ms`);
-    await ev("cheat", "PreToolUse", { tool_name: "Write", tool_input: { file_path: "C:\work\cheat\brouillon.md" } });
+    await ev("cheat", "PreToolUse", { tool_name: "Write", tool_input: { file_path: "C:\\work\\cheat\\brouillon.md" } });
   });
   await shot("02-permission");
 
@@ -161,7 +177,7 @@ try {
 
   await check("permission : Refuser → deny", async () => {
     permReq = post("/hook/permission", permBody);
-    await page.waitForSelector('[data-testid="permission"]');
+    await waitBlock('permission');
     await page.getByRole("button", { name: "Refuser", exact: true }).click();
     const r = await permReq;
     assert.equal(r.body.hookSpecificOutput.decision.behavior, "deny");
@@ -169,7 +185,7 @@ try {
 
   await check("permission : Toujours autoriser → updatedPermissions", async () => {
     permReq = post("/hook/permission", permBody);
-    await page.waitForSelector('[data-testid="permission"]');
+    await waitBlock('permission');
     await page.getByRole("button", { name: "Toujours autoriser", exact: true }).click();
     const r = await permReq;
     assert.deepEqual(r.body.hookSpecificOutput.decision.updatedPermissions, permBody.permission_suggestions);
@@ -179,7 +195,7 @@ try {
     await sleep(1700);
     await show("click");
     permReq = post("/hook/permission", permBody);
-    await page.waitForSelector('[data-testid="permission"]');
+    await waitBlock('permission');
     await page.getByRole("button", { name: "Autoriser", exact: true }).click();
     await permReq;
     await sleep(1900);
@@ -198,7 +214,7 @@ try {
     });
     req.on("error", () => {});
     req.end(JSON.stringify(permBody));
-    await page.waitForSelector('[data-testid="permission"]');
+    await waitBlock('permission');
     ac.abort();
     await page.waitForSelector('[data-testid="permission"]', { state: "detached", timeout: 2000 });
   });
@@ -226,7 +242,7 @@ try {
   };
   delete qBody.permission_suggestions;
   let qReq = post("/hook/permission", qBody);
-  await page.waitForSelector('[data-testid="question"]');
+  await waitBlock('question');
   await shot("04-question");
   await check("question : choix + Envoyer → updatedInput.answers", async () => {
     await page.getByRole("radio", { name: /Celui sur la douleur/ }).click();
@@ -240,7 +256,7 @@ try {
 
   await check("question : réponse libre « Autre… »", async () => {
     qReq = post("/hook/permission", qBody);
-    await page.waitForSelector('[data-testid="question"]');
+    await waitBlock('question');
     await page.getByPlaceholder("Autre…").fill("Une accroche sur la vitesse");
     await page.getByRole("button", { name: "Envoyer", exact: true }).click();
     const r = await qReq;
@@ -258,7 +274,7 @@ try {
       },
     };
     qReq = post("/hook/permission", multi);
-    await page.waitForSelector('[data-testid="question"]');
+    await waitBlock('question');
     await page.getByRole("radio", { name: /Celui avec un chiffre/ }).click();
     assert.equal(await page.getByRole("button", { name: "Envoyer", exact: true }).isDisabled(), true);
     await page.getByRole("checkbox", { name: /mp4/ }).click();
@@ -272,15 +288,13 @@ try {
 
   await check("« Répondre dans VS Code » → réponse vide (dialogue habituel)", async () => {
     qReq = post("/hook/permission", qBody);
-    await page.waitForSelector('[data-testid="question"]');
-    // le jump est neutralisé en test (pas d'ouverture de VS Code)
-    await app.evaluate(({ shell }) => {
-      shell.openExternal = async () => {};
-    });
+    await waitBlock('question');
     await page.getByRole("button", { name: "Répondre dans VS Code", exact: true }).click();
     const r = await qReq;
     assert.equal(r.status, 200);
     assert.equal(r.body, null);
+    // et VS Code est mis au premier plan sur cette session (jump neutralisé en test)
+    assert.deepEqual(await app.evaluate(() => globalThis.__fma.lastJump()), { sessionId: "breakdown", cwd: qBody.cwd });
   });
 
   // ---- vue détail ----

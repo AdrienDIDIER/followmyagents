@@ -347,13 +347,17 @@ async function start() {
       show: (r: "auto" | "click" | "shortcut") => panel.show(r),
       hide: () => panel.hide(),
       port: () => server.port,
+      lastJump: () => lastJump,
     };
   }
 }
 
+let lastJump: { sessionId: string; cwd: string } | null = null;
 async function jump(sessionId: string) {
   const s = store.getSession(sessionId);
   if (!s) return;
+  lastJump = { sessionId: s.id, cwd: s.cwd };
+  if (process.env.FMA_NO_JUMP === "1") return; // tests : pas d'action sur le vrai VS Code
   try {
     await jumpToSession(s.id, s.cwd, { openExternal: (u) => shell.openExternal(u), scriptsDir: scriptsDir(), log });
   } catch (e) {

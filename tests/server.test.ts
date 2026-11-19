@@ -167,3 +167,27 @@ describe("hooks", () => {
     expect(store.getSessions()).toHaveLength(4);
   });
 });
+
+describe("connexions", () => {
+  it("répond avec Connection: close (pas de socket keep-alive réutilisé)", async () => {
+    const headers = await new Promise<http.IncomingHttpHeaders>((resolve, reject) => {
+      const req = http.request(
+        { host: "127.0.0.1", port, path: "/hook/event", method: "POST", headers: { "X-FMA-Token": TOKEN } },
+        (res) => {
+          res.resume();
+          resolve(res.headers);
+        },
+      );
+      req.on("error", reject);
+      req.end(JSON.stringify({ session_id: "k", hook_event_name: "Stop" }));
+    });
+    expect(headers.connection).toBe("close");
+  });
+
+  it("enchaîne 30 requêtes espacées sans ECONNRESET", async () => {
+    for (let i = 0; i < 30; i++) {
+      const r = await post("/hook/event", { session_id: "k", hook_event_name: "PreToolUse", tool_name: "Read", tool_input: {} });
+      expect(r.status).toBe(200);
+    }
+  });
+});

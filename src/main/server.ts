@@ -33,14 +33,17 @@ function tokenMatches(given: unknown, expected: string): boolean {
   return a.length === b.length && timingSafeEqual(a, b);
 }
 
+// Connection: close : pas de réutilisation de connexion keep-alive. Évite la course
+// « le client réutilise un socket que le serveur vient de fermer » (ECONNRESET),
+// qui ferait perdre silencieusement un hook.
 function send(res: http.ServerResponse, status: number, body?: object) {
   if (res.writableEnded || res.destroyed) return;
   if (body) {
     const data = JSON.stringify(body);
-    res.writeHead(status, { "Content-Type": "application/json", "Content-Length": Buffer.byteLength(data) });
+    res.writeHead(status, { "Content-Type": "application/json", "Content-Length": Buffer.byteLength(data), Connection: "close" });
     res.end(data);
   } else {
-    res.writeHead(status, { "Content-Length": 0 });
+    res.writeHead(status, { "Content-Length": 0, Connection: "close" });
     res.end();
   }
 }
