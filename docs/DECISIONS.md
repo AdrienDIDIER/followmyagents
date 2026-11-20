@@ -168,5 +168,5 @@ Format : **choix** · alternatives · raison.
   - CI macOS : import dans un trousseau temporaire, approbation pour la signature de code (`add-trusted-cert -p codeSign`), puis `build/after-pack.cjs` signe l'app universelle (`codesign --force --deep`). Une étape vérifie la signature et affiche l'exigence désignée, qui doit citer le certificat et non un cdhash.
   - electron-builder garde `CSC_IDENTITY_AUTO_DISCOVERY=false` : il ne signe pas lui-même (pas de runtime renforcé ni de notarisation, inutiles sans compte Apple).
   - Sans les secrets, la build reste ad hoc, comme avant.
-- **Effet attendu** : après une dernière réautorisation (la 1re version signée change d'identité une fois), les autorisations macOS tiennent d'une mise à jour à l'autre. **À valider sur le Mac** (pas de Mac disponible pour le tester).
+- **Effet** : après une dernière réautorisation (la 1re version signée change d'identité une fois), les autorisations macOS tiennent d'une mise à jour à l'autre. **Validé sur le Mac de l'utilisateur** : mise à jour 0.3.3 → 0.3.4 sans rien refaire, `accessibility: true` (2026-11-20).
 - Gatekeeper : sans notarisation Apple, le 1er lancement d'un `.dmg` téléchargé demande toujours « Ouvrir quand même » ; les mises à jour faites par l'app ne sont pas concernées.
