@@ -2,7 +2,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { contains, readIdeWindows, titleCandidates, windowFor } from "../src/main/ide";
+import { contains, encodeProjectPath, readIdeWindows, resolveProjectRoot, titleCandidates, windowFor } from "../src/main/ide";
 
 let dir: string;
 beforeEach(() => (dir = fs.mkdtempSync(path.join(os.tmpdir(), "fma-ide-"))));
@@ -43,5 +43,27 @@ describe("windowFor / titleCandidates", () => {
       root: "/Users/me/work/mono",
       names: ["mono", "api", "packages", "work"],
     });
+  });
+});
+
+describe("dossier du projet (diagnostic réel du 2026-11-20, macOS)", () => {
+  const wins = [
+    { pid: 1, workspaceFolders: ["/Users/adriendidier/Workspace/hrx-prototype"] },
+    { pid: 2, workspaceFolders: ["/Users/adriendidier/Workspace/aihub"] },
+  ];
+  const cwdApresCd = "/private/tmp/claude-501/-Users-adriendidier-Workspace-hrx-prototype/2f3e21ea-17e8-4120-ab34-6ebe6a253013/scratchpad/pw";
+
+  it("encodeProjectPath reproduit l'encodage de Claude Code", () => {
+    expect(encodeProjectPath("/Users/adriendidier/Workspace/hrx-prototype")).toBe("-Users-adriendidier-Workspace-hrx-prototype");
+    expect(encodeProjectPath(String.raw`c:\Users\adrie\Documents\Workspace\FollowMyAgents`)).toBe("c--Users-adrie-Documents-Workspace-FollowMyAgents");
+  });
+
+  it("la clé du transcript désigne la bonne fenêtre même si l'agent a fait un cd ailleurs", () => {
+    expect(resolveProjectRoot(cwdApresCd, "-Users-adriendidier-Workspace-hrx-prototype", wins, "darwin")).toBe("/Users/adriendidier/Workspace/hrx-prototype");
+  });
+
+  it("sans clé : dossier du projet contenu dans une fenêtre, sinon le dossier lui-même", () => {
+    expect(resolveProjectRoot("/Users/adriendidier/Workspace/aihub/src", undefined, wins, "darwin")).toBe("/Users/adriendidier/Workspace/aihub");
+    expect(resolveProjectRoot("/autre", undefined, wins, "darwin")).toBe("/autre");
   });
 });

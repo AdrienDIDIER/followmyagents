@@ -140,3 +140,23 @@ describe("jump Codex", () => {
     expect(calls.open).toEqual(["vscode://openai.chatgpt/local/01a1f59b-3713"]);
   });
 });
+
+describe("jump macOS sans autorisation (D28)", () => {
+  it("dossier exact d'une fenêtre VS Code : `code <dossier>` sans AppleScript", async () => {
+    const root = "/Users/a/Workspace/hrx-prototype";
+    const code = "/usr/local/bin/code";
+    const { deps, calls } = setup("darwin", ok("FOCUSED"), [root, code], [
+      { pid: 1, workspaceFolders: [root] },
+      { pid: 2, workspaceFolders: ["/Users/a/Workspace/aihub"] },
+    ]);
+    expect(await jumpToSession("s", root, deps)).toBe("opened-folder");
+    expect(calls.run).toEqual([]); // pas d'osascript → aucune autorisation nécessaire
+    expect(calls.launch).toEqual([[code, [root]]]);
+  });
+  it("workspace multi-dossiers : on garde la recherche par titre (AppleScript)", async () => {
+    const root = "/Users/a/w1";
+    const { deps, calls } = setup("darwin", ok("FOCUSED x — ws"), [root], [{ pid: 1, workspaceFolders: [root, "/Users/a/w2"] }]);
+    await jumpToSession("s", root, deps);
+    expect(calls.run[0][0]).toBe("osascript");
+  });
+});

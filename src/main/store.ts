@@ -137,6 +137,8 @@ export class SessionStore {
       s = {
         id,
         agent: ev._agent === "codex" ? "codex" : "claude",
+        projectDir: ev.cwd ?? "",
+        projectKey: projectKeyFromTranscript(ev.transcript_path),
         cwd: ev.cwd ?? "",
         transcriptPath: ev.transcript_path ?? "",
         title: "",
@@ -154,7 +156,11 @@ export class SessionStore {
       this.sessions.set(id, s);
     }
     if (ev.cwd) s.cwd = ev.cwd;
-    if (ev.transcript_path) s.transcriptPath = ev.transcript_path;
+    if (!s.projectDir && ev.cwd) s.projectDir = ev.cwd;
+    if (ev.transcript_path) {
+      s.transcriptPath = ev.transcript_path;
+      s.projectKey ??= projectKeyFromTranscript(ev.transcript_path);
+    }
     if (typeof ev.session_title === "string" && ev.session_title.trim()) {
       s.title = truncate(ev.session_title, 48);
       s.titleSource = "session";
@@ -171,6 +177,8 @@ export class SessionStore {
     const t = this.now();
     this.sessions.set(partial.id, {
       agent: "claude",
+      projectDir: partial.cwd,
+      projectKey: projectKeyFromTranscript(partial.transcriptPath),
       titleSource: "transcript",
       subtitle: "",
       colorIndex: this.nextColor(),
@@ -666,6 +674,13 @@ export class SessionStore {
   releaseAll(): void {
     for (const id of [...this.pendings.keys()]) this.finish(id, null, { type: "dismissed" });
   }
+}
+
+/** ~/.claude/projects/<clé>/<session>.jsonl → <clé> (chemin du projet encodé par Claude Code). */
+export function projectKeyFromTranscript(p: unknown): string | undefined {
+  if (typeof p !== "string") return undefined;
+  const m = /[\\/]\.claude[\\/]projects[\\/]([^\\/]+)[\\/][^\\/]+\.jsonl$/.exec(p);
+  return m ? m[1] : undefined;
 }
 
 /** Libellé court d'un type de sous-agent. */

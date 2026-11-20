@@ -6,7 +6,7 @@
 import { execFile, spawn } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
-import { readIdeWindows, titleCandidates, type IdeWindow } from "./ide";
+import { readIdeWindows, titleCandidates, windowFor, type IdeWindow } from "./ide";
 
 export function sessionUri(sessionId: string): string {
   return `vscode://anthropic.claude-code/open?session=${encodeURIComponent(sessionId)}`;
@@ -15,6 +15,11 @@ export function sessionUri(sessionId: string): string {
 /** Conversation Codex dans l'extension VS Code d'OpenAI (route /local/:conversationId). */
 export function codexSessionUri(threadId: string): string {
   return `vscode://openai.chatgpt/local/${encodeURIComponent(threadId)}`;
+}
+
+function sameDir(a: string, b: string): boolean {
+  const n = (x: string) => x.replace(/[\\/]+$/, "").toLowerCase();
+  return n(a) === n(b);
 }
 
 export function folderName(cwd: string): string {
@@ -113,7 +118,8 @@ export async function focusVsCodeWindow(cwd: string, deps: JumpDeps): Promise<Fo
   const launch = deps.launch ?? defaultLaunch;
   const exists = deps.exists ?? fs.existsSync;
   // dossier racine de la fenêtre VS Code qui contient la session (et noms à chercher dans les titres)
-  const { names, root } = titleCandidates(cwd, deps.ideWindows ?? readIdeWindows(), platform);
+  const windows = deps.ideWindows ?? readIdeWindows();
+  const { names, root } = titleCandidates(cwd, windows, platform);
   deps.log?.(`jump : racine ${root}, titres cherchés ${JSON.stringify(names)}`);
   deps.onDiag?.({ cwd, root, names });
 
@@ -145,6 +151,16 @@ export async function focusVsCodeWindow(cwd: string, deps: JumpDeps): Promise<Fo
       launch("open", ["-a", "Visual Studio Code"]);
       return "activated-app";
     };
+    // Voie sans autorisation macOS (D28) : si le dossier est EXACTEMENT celui d'une fenêtre
+    // VS Code ouverte (un seul dossier), VS Code réutilise cette fenêtre et la met devant.
+    const w = windowFor(root, windows, platform);
+    if (w && w.folders.length === 1 && sameDir(w.root, root) && exists(root)) {
+      deps.onDiag?.({ method: "open-folder", folder: root });
+      const code = macCodeCandidates().find((p) => exists(p));
+      if (code) launch(code, [root]);
+      else launch("open", ["-a", "Visual Studio Code", root]);
+      return "opened-folder";
+    }
     const script = path.join(deps.scriptsDir, "focus-window-mac.applescript");
     const r = await run("osascript", [script, root, ...names], 4000);
     deps.log?.(`focus-window-mac : code=${r.code} ${r.stdout.trim()} ${r.stderr.trim()}`);

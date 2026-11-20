@@ -77,6 +77,10 @@ export type AgentKind = "claude" | "codex";
 export interface Session {
   id: string;
   agent: AgentKind;
+  /** dossier du PROJET : fixé au démarrage, jamais écrasé par les `cd` de l'agent (D28) */
+  projectDir: string;
+  /** Claude Code : nom du dossier du transcript (~/.claude/projects/<clé>/…), = chemin du projet encodé */
+  projectKey?: string;
   cwd: string;
   transcriptPath: string;
   title: string;

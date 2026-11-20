@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { SessionStore, parseTaskNotification, type ChangeReason } from "../src/main/store";
+import { SessionStore, parseTaskNotification, projectKeyFromTranscript, type ChangeReason } from "../src/main/store";
 import fixture from "./fixtures/background-subagent.json";
 
 let t = 1_000_000;
@@ -528,5 +528,25 @@ describe("agents internes de Claude Code", () => {
     expect(store.getSession("s1")!.subagents).toEqual([]);
     ev("SubagentStart", { agent_id: "real", agent_type: "Explore" });
     expect(store.getSession("s1")!.subagents.map((a) => a.type)).toEqual(["Explore"]);
+  });
+});
+
+describe("dossier du projet", () => {
+  it("fixé au démarrage, pas écrasé par les cd de l'agent ; clé lue dans le chemin du transcript", () => {
+    store.ingest({
+      session_id: "p1",
+      cwd: "/Users/a/Workspace/hrx-prototype",
+      transcript_path: "/Users/a/.claude/projects/-Users-a-Workspace-hrx-prototype/p1.jsonl",
+      hook_event_name: "SessionStart",
+    });
+    store.ingest({ session_id: "p1", cwd: "/private/tmp/claude-501/x/scratchpad/pw", hook_event_name: "PreToolUse", tool_name: "Bash", tool_input: { command: "ls" } });
+    const s = store.getSession("p1")!;
+    expect(s.cwd).toBe("/private/tmp/claude-501/x/scratchpad/pw");
+    expect(s.projectDir).toBe("/Users/a/Workspace/hrx-prototype");
+    expect(s.projectKey).toBe("-Users-a-Workspace-hrx-prototype");
+  });
+  it("chemin de transcript Windows", () => {
+    expect(projectKeyFromTranscript(String.raw`C:\Users\adrie\.claude\projects\c--Users-adrie-W-P\abc.jsonl`)).toBe("c--Users-adrie-W-P");
+    expect(projectKeyFromTranscript("/home/u/.codex/sessions/2026/x.jsonl")).toBeUndefined();
   });
 });

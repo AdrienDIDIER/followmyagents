@@ -94,3 +94,33 @@ export function titleCandidates(cwd: string, windows: IdeWindow[], platform: Nod
   for (let i = parts.length - 2; i >= Math.max(0, parts.length - 4); i--) add(parts[i]);
   return { names, root: w?.root ?? cwd };
 }
+
+/** Encodage des dossiers de projet par Claude Code (~/.claude/projects) : tout caractère non alphanumérique → « - ». */
+export function encodeProjectPath(p: string): string {
+  return p.replace(/[^a-zA-Z0-9]/g, "-");
+}
+
+/**
+ * Dossier racine du projet d'une session, dans l'ordre :
+ * 1. dossier d'une fenêtre VS Code dont l'encodage = clé du transcript Claude Code ;
+ * 2. dossier d'une fenêtre VS Code qui contient le dossier du projet ;
+ * 3. le dossier du projet lui-même.
+ */
+export function resolveProjectRoot(
+  projectDir: string,
+  projectKey: string | undefined,
+  windows: IdeWindow[],
+  platform: NodeJS.Platform = process.platform,
+): string {
+  const ci = platform === "win32" || platform === "darwin";
+  if (projectKey) {
+    const key = ci ? projectKey.toLowerCase() : projectKey;
+    for (const w of windows) {
+      for (const f of w.workspaceFolders) {
+        const enc = encodeProjectPath(f);
+        if ((ci ? enc.toLowerCase() : enc) === key) return f;
+      }
+    }
+  }
+  return windowFor(projectDir, windows, platform)?.root ?? projectDir;
+}

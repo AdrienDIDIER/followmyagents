@@ -21,7 +21,7 @@ import {
 import { MAX_WIDTH, MIN_WIDTH, Panel, rendererPaths } from "./panel";
 import { trayImage } from "./tray-icon";
 import { codexSessionUri, jumpToSession, listVsCodeWindowTitles } from "./vscode";
-import { readIdeWindows } from "./ide";
+import { readIdeWindows, resolveProjectRoot } from "./ide";
 import { Updater } from "./updater";
 import { QuotaWatcher } from "./quota";
 import { CodexQuotaWatcher } from "./codex-quota";
@@ -695,10 +695,11 @@ const MAC_SETTINGS = {
   accessibility: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility",
   automation: "x-apple.systempreferences:com.apple.preference.security?Privacy_Automation",
 };
-let permissionAsked = false;
+let permissionAskedAt = 0;
 function askAccessibility(kind: "accessibility" | "automation") {
-  if (process.platform !== "darwin" || permissionAsked) return;
-  permissionAsked = true;
+  // au plus une fois toutes les 10 min (avant : une seule fois par lancement)
+  if (process.platform !== "darwin" || Date.now() - permissionAskedAt < 10 * 60_000) return;
+  permissionAskedAt = Date.now();
   void showMacPermissions(kind);
 }
 
@@ -741,7 +742,7 @@ let lastJumpDiag: Record<string, unknown> | null = null;
 async function jump(sessionId: string) {
   const s = store.getSession(sessionId);
   if (!s) return;
-  lastJump = { sessionId: s.id, cwd: s.cwd };
+  lastJump = { sessionId: s.id, cwd: s.projectDir || s.cwd };
   if (process.env.FMA_NO_JUMP === "1") return; // tests : pas d'action sur le vrai VS Code
   try {
     const diag: Record<string, unknown> = {
@@ -753,7 +754,13 @@ async function jump(sessionId: string) {
       accessibility: process.platform === "darwin" ? systemPreferences.isTrustedAccessibilityClient(false) : undefined,
       ideWindows: readIdeWindows().map((w) => w.workspaceFolders),
     };
-    const outcome = await jumpToSession(s.id, s.cwd, {
+    const ideWindows = readIdeWindows();
+    const projectRoot = resolveProjectRoot(s.projectDir || s.cwd, s.projectKey, ideWindows);
+    diag.projectDir = s.projectDir;
+    diag.projectKey = s.projectKey;
+    diag.projectRoot = projectRoot;
+    const outcome = await jumpToSession(s.id, projectRoot, {
+      ideWindows,
       openExternal: (u) => shell.openExternal(u),
       scriptsDir: scriptsDir(),
       log,
