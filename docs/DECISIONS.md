@@ -161,3 +161,12 @@ Format : **choix** · alternatives · raison.
 - **Dossier du projet** : fixé au premier événement de la session (`projectDir`), jamais écrasé par les `cd`. Pour Claude Code, il est confirmé par la clé du dossier du transcript (`~/.claude/projects/<chemin encodé>/`), comparée à l'encodage des dossiers des fenêtres VS Code ouvertes (`~/.claude/ide/*.lock`).
 - **macOS sans autorisation** : si ce dossier est exactement celui d'une fenêtre VS Code à un seul dossier, l'app lance `code <dossier>` (ou `open -a "Visual Studio Code" <dossier>`). VS Code réutilise et met devant la fenêtre de ce dossier, sans Accessibilité ni Automatisation. L'AppleScript reste le secours (workspaces multi-dossiers, dossier inconnu).
 - La demande d'autorisation peut réapparaître (au plus toutes les 10 min) au lieu d'une seule fois par lancement.
+
+## D29 — Signature macOS stable (certificat auto-signé)
+- **Problème** : une app signée « ad hoc » change d'identité à chaque build. macOS rattache Accessibilité, Automatisation et l'accès au trousseau à cette identité, donc les « oublie » à chaque mise à jour (l'interrupteur reste sur ON mais ne s'applique plus).
+- **Choix** : un certificat de signature de code **auto-signé et fixe** (« FollowMyAgents Code Signing », 10 ans), généré hors du dépôt (`~/FollowMyAgents-signing/`, clé privée jamais commitée). Il est fourni à GitHub Actions par deux secrets : `MAC_CERT_P12` (le `.p12` en base64) et `MAC_CERT_PASSWORD`.
+  - CI macOS : import dans un trousseau temporaire, approbation pour la signature de code (`add-trusted-cert -p codeSign`), puis `build/after-pack.cjs` signe l'app universelle (`codesign --force --deep`). Une étape vérifie la signature et affiche l'exigence désignée, qui doit citer le certificat et non un cdhash.
+  - electron-builder garde `CSC_IDENTITY_AUTO_DISCOVERY=false` : il ne signe pas lui-même (pas de runtime renforcé ni de notarisation, inutiles sans compte Apple).
+  - Sans les secrets, la build reste ad hoc, comme avant.
+- **Effet attendu** : après une dernière réautorisation (la 1re version signée change d'identité une fois), les autorisations macOS tiennent d'une mise à jour à l'autre. **À valider sur le Mac** (pas de Mac disponible pour le tester).
+- Gatekeeper : sans notarisation Apple, le 1er lancement d'un `.dmg` téléchargé demande toujours « Ouvrir quand même » ; les mises à jour faites par l'app ne sont pas concernées.

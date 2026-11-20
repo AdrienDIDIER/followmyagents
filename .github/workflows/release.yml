@@ -20,6 +20,10 @@ jobs:
           - os: windows-latest
             target: --win
     runs-on: ${{ matrix.os }}
+    env:
+      # certificat auto-signé STABLE (D29) : sans lui, l'app reste signée ad hoc
+      MAC_CERT_P12: ${{ secrets.MAC_CERT_P12 }}
+      MAC_CERT_PASSWORD: ${{ secrets.MAC_CERT_PASSWORD }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -29,10 +33,35 @@ jobs:
       - run: npm ci
       - run: npm test
       - run: npm run build
+      - name: Certificat de signature stable (macOS)
+        if: runner.os == 'macOS' && env.MAC_CERT_P12 != ''
+        run: |
+          KC="$RUNNER_TEMP/fma-signing.keychain-db"
+          echo "$MAC_CERT_P12" | base64 --decode > "$RUNNER_TEMP/cert.p12"
+          security create-keychain -p fma "$KC"
+          security set-keychain-settings -lut 21600 "$KC"
+          security unlock-keychain -p fma "$KC"
+          security import "$RUNNER_TEMP/cert.p12" -k "$KC" -P "$MAC_CERT_PASSWORD" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k fma "$KC" > /dev/null
+          security list-keychains -d user -s "$KC" $(security list-keychains -d user | tr -d '"')
+          # certificat auto-signé : l'approuver pour la signature de code sur cette machine de build
+          security find-certificate -c "FollowMyAgents Code Signing" -p "$KC" > "$RUNNER_TEMP/cert.pem"
+          sudo security add-trusted-cert -d -r trustRoot -p codeSign -k /Library/Keychains/System.keychain "$RUNNER_TEMP/cert.pem"
+          security find-identity -v -p codesigning "$KC"
+          echo "MAC_SIGN_IDENTITY=FollowMyAgents Code Signing" >> "$GITHUB_ENV"
+          rm -f "$RUNNER_TEMP/cert.p12"
       - name: Package
         run: npx electron-builder ${{ matrix.target }} --publish never
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: "false"
+      - name: Vérification de la signature (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          rm -rf "$RUNNER_TEMP/check" && mkdir "$RUNNER_TEMP/check"
+          ditto -x -k release/*.zip "$RUNNER_TEMP/check"
+          codesign -dv --verbose=2 "$RUNNER_TEMP/check/FollowMyAgents.app" 2>&1 | grep -E "Identifier|Authority|Signature|TeamIdentifier" || true
+          codesign -d -r- "$RUNNER_TEMP/check/FollowMyAgents.app" 2>&1 | tail -1
+          codesign --verify --deep --strict "$RUNNER_TEMP/check/FollowMyAgents.app" && echo "signature valide"
       - uses: actions/upload-artifact@v4
         with:
           name: dist-${{ matrix.os }}

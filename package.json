@@ -75,7 +75,8 @@
       "allowToChangeInstallationDirectory": true,
       "artifactName": "FollowMyAgents-Setup-${version}.${ext}"
     },
-    "publish": null
+    "publish": null,
+    "afterPack": "build/after-pack.cjs"
   },
   "devDependencies": {
     "@types/node": "^22.20.5",
