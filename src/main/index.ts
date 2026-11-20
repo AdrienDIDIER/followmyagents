@@ -717,7 +717,7 @@ async function showMacPermissions(kind?: "accessibility" | "automation") {
           : kind === "accessibility"
             ? "macOS a refusé l'accès « Accessibilité » à FollowMyAgents."
             : "",
-        `1. Accessibilité : activer FollowMyAgents${trusted ? " (déjà accordé ✓)" : ""}.`,
+        `1. Accessibilité (selon la version de macOS : « Contrôle de l'appareil et accès aux données ») : activer FollowMyAgents${trusted ? " (déjà accordé ✓)" : ""}. Si l'interrupteur est déjà activé mais sans effet : le retirer (–) puis le rajouter (+).`,
         "2. Automatisation : sous FollowMyAgents, cocher « Événements Système ».",
         "Lancée avec npm start, autorisez plutôt Terminal (ou Visual Studio Code si vous lancez depuis son terminal). Puis quittez et relancez FollowMyAgents.",
         "En attendant, ↗ active seulement VS Code.",
